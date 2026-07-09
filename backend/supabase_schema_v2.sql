@@ -31,7 +31,7 @@ CREATE TABLE users (
     avatar_url    TEXT,
     phone         TEXT,
     role          TEXT NOT NULL DEFAULT 'Reader'
-                  CHECK (role IN ('Reader', 'Author', 'Moderator', 'Admin')),
+                  CHECK (role IN ('Reader', 'Author', 'ReaderAuthor', 'Moderator', 'Admin')),
     is_active     BOOLEAN NOT NULL DEFAULT true,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),

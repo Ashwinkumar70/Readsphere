@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginUser } from '../store/slices/authSlice';
 import { supabase } from '../lib/supabase';
+import { getDashboardRoute } from '../utils/roleRouter';
 
 /* ─── Brand tokens ───────────────────────────────────────────────── */
 const SAND    = 'rgb(240, 237, 228)';
@@ -106,7 +107,7 @@ export default function Login() {
     e.preventDefault();
     const resultAction = await dispatch(loginUser({ email: form.email, password: form.password }));
     if (loginUser.fulfilled.match(resultAction)) {
-      navigate('/dashboard');
+      navigate(getDashboardRoute(resultAction.payload.role));
     } else {
       toast.error(resultAction.payload?.message || 'Login failed');
     }
@@ -298,7 +299,7 @@ export default function Login() {
                 try {
                   const { error } = await supabase.auth.signInWithOAuth({
                     provider: 'google',
-                    options: { redirectTo: window.location.origin + '/Readsphere/dashboard' },
+                    options: { redirectTo: window.location.origin + import.meta.env.BASE_URL + 'reader' },
                   });
                   if (error) throw error;
                 } catch (err) { toast.error(err.message); }

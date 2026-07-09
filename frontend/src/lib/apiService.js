@@ -12,8 +12,10 @@ const api = axios.create({
 api.interceptors.request.use(
   async (config) => {
     const { data: { session } } = await supabase.auth.getSession();
+    console.log('[AUTH TRACE] Frontend - Session Token:', session?.access_token ? session.access_token.substring(0, 15) + '...' : 'NONE');
     if (session?.access_token) {
       config.headers.Authorization = `Bearer ${session.access_token}`;
+      console.log('[AUTH TRACE] Frontend - Sending Header:', config.headers.Authorization.substring(0, 25) + '...');
     }
     return config;
   },

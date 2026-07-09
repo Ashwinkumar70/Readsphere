@@ -32,7 +32,7 @@ const registerUser = async (req, res, next) => {
     const { name, email, password, role } = req.body;
 
     // Security: prevent self-assignment of privileged roles
-    const allowedRoles = ['Reader', 'Author'];
+    const allowedRoles = ['Reader', 'Author', 'ReaderAuthor'];
     const userRole = allowedRoles.includes(role) ? role : 'Reader';
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -48,12 +48,13 @@ const registerUser = async (req, res, next) => {
       throw new Error(authError.message);
     }
 
-    // Create user profile in public.users
+    // The SQL trigger `handle_new_user` creates the profile automatically.
+    // We just need to fetch it to return it to the client.
     const { data: userProfile, error: profileError } = await supabase
       .from('users')
-      .insert([{ id: authData.user.id, email: authData.user.email, name, role: userRole }])
-      .select('id, name, email, role, avatar_url, created_at')
-      .single();
+      .select('id, name, role, avatar_url, created_at')
+      .eq('id', authData.user.id)
+      .maybeSingle();
 
     if (profileError) {
       // Cleanup: delete auth user if profile creation failed
@@ -65,9 +66,10 @@ const registerUser = async (req, res, next) => {
     res.status(201).json({
       id: userProfile.id,
       name: userProfile.name,
-      email: userProfile.email,
+      email: authData.user.email,
       role: userProfile.role,
       token: authData.session?.access_token || null,
+      refreshToken: authData.session?.refresh_token || null,
     });
   } catch (error) {
     next(error);
@@ -95,9 +97,9 @@ const loginUser = async (req, res, next) => {
     // Fetch user profile
     const { data: userProfile, error: profileError } = await supabase
       .from('users')
-      .select('id, name, email, role, avatar_url, is_active')
+      .select('id, name, role, avatar_url, is_active')
       .eq('id', authData.user.id)
-      .single();
+      .maybeSingle();
 
     if (profileError || !userProfile) {
       res.status(404);
@@ -119,10 +121,11 @@ const loginUser = async (req, res, next) => {
     res.json({
       id: userProfile.id,
       name: userProfile.name,
-      email: userProfile.email,
+      email: authData.user.email,
       role: userProfile.role,
       avatarUrl: userProfile.avatar_url,
       token: authData.session.access_token,
+      refreshToken: authData.session.refresh_token,
     });
   } catch (error) {
     next(error);
@@ -165,8 +168,8 @@ const updateProfile = async (req, res, next) => {
       .from('users')
       .update(updates)
       .eq('id', req.user.id)
-      .select('id, name, email, role, avatar_url, bio')
-      .single();
+      .select('id, name, role, avatar_url, bio')
+      .maybeSingle();
 
     if (error) {
       res.status(400);
@@ -249,7 +252,7 @@ const getDashboardData = async (req, res, next) => {
       .from('users')
       .select('created_at, is_active')
       .eq('id', req.user.id)
-      .single();
+      .maybeSingle();
 
     if (error) {
       res.status(400);

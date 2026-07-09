@@ -4,12 +4,13 @@ import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { supabase } from './lib/supabase.js';
-import { setAuthSession, fetchUserProfile } from './store/slices/authSlice.js';
+import { setAuthSession, fetchUserProfile, setAuthLoading } from './store/slices/authSlice.js';
 
 import Navbar from './components/layout/Navbar.jsx';
 import Sidebar from './components/layout/Sidebar.jsx';
 import Footer from './components/layout/Footer.jsx';
 import AdminLayout from './components/layout/AdminLayout.jsx';
+import ProtectedRoute from './components/auth/ProtectedRoute.jsx';
 
 import Landing from './pages/Landing.jsx';
 import Login from './pages/Login.jsx';
@@ -24,6 +25,7 @@ import Clubs from './pages/Clubs.jsx';
 import ClubDetails from './pages/ClubDetails.jsx';
 import ClubDiscussion from './pages/ClubDiscussion.jsx';
 import AuthorDashboard from './pages/AuthorDashboard.jsx';
+import ReaderAuthorDashboard from './pages/ReaderAuthorDashboard.jsx';
 import UploadBook from './pages/UploadBook.jsx';
 import Pricing from './pages/Pricing.jsx';
 import Profile from './pages/Profile.jsx';
@@ -36,10 +38,10 @@ import AuthorProfile from './pages/AuthorProfile.jsx';
 import NotFound from './pages/NotFound.jsx';
 
 // Pages that use the sidebar layout
-const sidebarRoutes = ['/dashboard', '/library', '/collections', '/clubs', '/bookmarks', '/notes', '/profile', '/author', '/upload', '/notifications', '/settings'];
+const sidebarRoutes = ['/reader', '/reader-author', '/library', '/collections', '/clubs', '/bookmarks', '/notes', '/profile', '/author', '/upload', '/notifications', '/settings'];
 
 // Pages that are standalone (no navbar/footer)
-const standaloneRoutes = ['/login', '/register', '/reader'];
+const standaloneRoutes = ['/login', '/register', '/reader/'];
 
 function AppLayout() {
   const location = useLocation();
@@ -81,19 +83,21 @@ function AppLayout() {
           <main className="flex-1 ml-60 min-h-screen transition-all duration-300">
             <AnimatePresence mode="wait">
               <Routes location={location} key={location.pathname}>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/library" element={<MyLibrary />} />
-                <Route path="/collections" element={<Collections />} />
-                <Route path="/clubs" element={<Clubs />} />
-                <Route path="/clubs/:id" element={<ClubDetails />} />
-                <Route path="/clubs/:id/discuss" element={<ClubDiscussion />} />
-                <Route path="/bookmarks" element={<MyLibrary tab="bookmarks" />} />
-                <Route path="/notes" element={<MyLibrary tab="notes" />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/author" element={<AuthorDashboard />} />
-                <Route path="/upload" element={<UploadBook />} />
-                <Route path="/notifications" element={<Notifications />} />
+                <Route path="/reader" element={<ProtectedRoute allowedRoles={['Reader', 'ReaderAuthor']}><Dashboard /></ProtectedRoute>} />
+                <Route path="/reader-author" element={<ProtectedRoute allowedRoles={['ReaderAuthor']}><ReaderAuthorDashboard /></ProtectedRoute>} />
+                <Route path="/author" element={<ProtectedRoute allowedRoles={['Author', 'ReaderAuthor']}><AuthorDashboard /></ProtectedRoute>} />
+                
+                <Route path="/library" element={<ProtectedRoute><MyLibrary /></ProtectedRoute>} />
+                <Route path="/collections" element={<ProtectedRoute><Collections /></ProtectedRoute>} />
+                <Route path="/clubs" element={<ProtectedRoute><Clubs /></ProtectedRoute>} />
+                <Route path="/clubs/:id" element={<ProtectedRoute><ClubDetails /></ProtectedRoute>} />
+                <Route path="/clubs/:id/discuss" element={<ProtectedRoute><ClubDiscussion /></ProtectedRoute>} />
+                <Route path="/bookmarks" element={<ProtectedRoute><MyLibrary tab="bookmarks" /></ProtectedRoute>} />
+                <Route path="/notes" element={<ProtectedRoute><MyLibrary tab="notes" /></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                <Route path="/upload" element={<ProtectedRoute><UploadBook /></ProtectedRoute>} />
+                <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
               </Routes>
             </AnimatePresence>
           </main>
@@ -110,6 +114,9 @@ function AppLayout() {
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
             <Route path="/" element={<Landing />} />
+            {/* OAuth callback route - handles session via onAuthStateChange and redirects */}
+            <Route path="/auth/callback" element={<div className="p-6 text-center">Authenticating...</div>} />
+            {/* Gracefully handle old local bookmarks to /Readsphere/ */}
             <Route path="/Readsphere/*" element={<Navigate to="/" replace />} />
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/books/:id" element={<BookDetails />} />
@@ -130,30 +137,22 @@ export default function App() {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    // Initial session check
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        dispatch(setAuthSession({ 
-          id: session.user.id, 
-          email: session.user.email,
-          role: session.user.user_metadata?.role || 'Reader'
-        }));
-        dispatch(fetchUserProfile());
-      }
-    });
+    // Initial session check is now completely handled by onAuthStateChange's INITIAL_SESSION event
+    // in Supabase v2, so we don't need a separate getSession() call here.
 
-    // Listen for auth state changes (Google OAuth callback, login, logout)
+    // Listen for auth state changes (Google OAuth callback, login, logout, refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (session) {
-          dispatch(setAuthSession({ 
-            id: session.user.id, 
-            email: session.user.email,
-            role: session.user.user_metadata?.role || 'Reader'
-          }));
-          dispatch(fetchUserProfile());
-        } else {
+      async (event, session) => {
+        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+          if (session) {
+            dispatch(setAuthSession(session.user));
+            dispatch(fetchUserProfile());
+          } else {
+            dispatch(setAuthLoading(false));
+          }
+        } else if (event === 'SIGNED_OUT') {
           dispatch(setAuthSession(null));
+          dispatch(setAuthLoading(false));
         }
       }
     );
@@ -162,7 +161,7 @@ export default function App() {
   }, [dispatch]);
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Toaster
         position="top-right"
         toastOptions={{

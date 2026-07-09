@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { registerUser } from '../store/slices/authSlice';
 import { supabase } from '../lib/supabase';
+import { getDashboardRoute } from '../utils/roleRouter';
 
 /* ─── Brand tokens ───────────────────────────────────────────────── */
 const SAND    = 'rgb(240, 237, 228)';
@@ -106,10 +107,10 @@ export default function Register() {
     e.preventDefault();
     if (!role) { toast.error('Please select an account type'); return; }
     if (!agreed) { toast.error('Please agree to the Terms of Service'); return; }
-    const mappedRole = role === 'Author and Reader' ? 'Author' : role;
+    const mappedRole = role === 'Author and Reader' ? 'ReaderAuthor' : role;
     const resultAction = await dispatch(registerUser({ ...form, role: mappedRole }));
     if (registerUser.fulfilled.match(resultAction)) {
-      navigate('/dashboard');
+      navigate(getDashboardRoute(resultAction.payload.role));
     } else {
       toast.error(resultAction.payload?.message || 'Registration failed');
     }
@@ -331,7 +332,7 @@ export default function Register() {
                   const { error } = await supabase.auth.signInWithOAuth({
                     provider: 'google',
                     options: { 
-                      redirectTo: window.location.origin + '/Readsphere/dashboard',
+                      redirectTo: window.location.origin + import.meta.env.BASE_URL + 'reader',
                       queryParams: { role: mappedRole }
                     },
                   });

@@ -10,12 +10,18 @@ import Badge from '../ui/Badge.jsx';
 import { useSelector, useDispatch } from 'react-redux';
 import { logoutUser } from '../../store/slices/authSlice.js';
 
-const navLinks = [
+import { getDashboardRoute } from '../../utils/roleRouter.js';
+
+const publicNavLinks = [
   { label: 'Home', to: '/' },
   { label: 'Marketplace', to: '/marketplace' },
-  { label: 'Collections', to: '/collections' },
-  { label: 'Clubs', to: '/clubs' },
   { label: 'Pricing', to: '/pricing' },
+  { label: 'Contact', to: '/contact' },
+];
+
+const authNavLinks = [
+  { label: 'Marketplace', to: '/marketplace' },
+  { label: 'AI Reader', to: '/reader' }, // Using reader dashboard for AI feature link
 ];
 
 export default function Navbar() {
@@ -57,7 +63,22 @@ export default function Navbar() {
 
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-1">
-            {navLinks.map(link => (
+            {isAuthenticated && user && (
+              <NavLink
+                to={getDashboardRoute(user.role)}
+                className={({ isActive }) =>
+                  `px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                    isActive
+                      ? 'text-primary bg-primary-50 font-semibold'
+                      : 'text-muted hover:text-text hover:bg-gray-100'
+                  }`
+                }
+              >
+                Dashboard
+              </NavLink>
+            )}
+            
+            {(isAuthenticated ? authNavLinks : publicNavLinks).map(link => (
               <NavLink
                 key={link.to}
                 to={link.to}
@@ -161,9 +182,9 @@ export default function Navbar() {
                       {[
                         { icon: User, label: 'Profile', to: '/profile' },
                         { icon: Library, label: 'My Library', to: '/library' },
-                        { icon: Sparkles, label: 'AI Features', to: '/dashboard' },
-                        { icon: CreditCard, label: 'Subscription', to: '/pricing' },
-                        { icon: Settings, label: 'Settings', to: '/profile' },
+                        { icon: Sparkles, label: 'Dashboard', to: getDashboardRoute(user.role) },
+                        { icon: Bell, label: 'Notifications', to: '/notifications' },
+                        { icon: Settings, label: 'Settings', to: '/settings' },
                       ].map(item => (
                         <Link
                           key={item.to}
@@ -212,7 +233,7 @@ export default function Navbar() {
               className="lg:hidden border-t border-border overflow-hidden bg-white"
             >
               <div className="px-4 py-3 space-y-1">
-                {navLinks.map(link => (
+                {(isAuthenticated ? authNavLinks : publicNavLinks).map(link => (
                   <NavLink
                     key={link.to}
                     to={link.to}
@@ -226,11 +247,23 @@ export default function Navbar() {
                     {link.label}
                   </NavLink>
                 ))}
-                <div className="pt-2 border-t border-border flex gap-2">
-                  <Link to="/dashboard" onClick={() => setMobileOpen(false)} className="flex-1 text-center py-2.5 bg-primary text-white rounded-xl text-sm font-semibold">
-                    Dashboard
-                  </Link>
-                </div>
+                {!isAuthenticated && (
+                  <div className="pt-2 border-t border-border flex gap-2">
+                    <Link to="/login" onClick={() => setMobileOpen(false)} className="flex-1 text-center py-2.5 border border-primary text-primary rounded-xl text-sm font-semibold">
+                      Login
+                    </Link>
+                    <Link to="/register" onClick={() => setMobileOpen(false)} className="flex-1 text-center py-2.5 bg-primary text-white rounded-xl text-sm font-semibold">
+                      Register
+                    </Link>
+                  </div>
+                )}
+                {isAuthenticated && user && (
+                  <div className="pt-2 border-t border-border flex gap-2">
+                    <Link to={getDashboardRoute(user.role)} onClick={() => setMobileOpen(false)} className="flex-1 text-center py-2.5 bg-primary text-white rounded-xl text-sm font-semibold">
+                      Dashboard
+                    </Link>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}

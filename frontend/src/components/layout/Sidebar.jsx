@@ -62,7 +62,7 @@ export default function Sidebar({ collapsed: externalCollapsed, onCollapse }) {
             <div className="flex items-center gap-3 p-3 rounded-xl bg-primary-50 border border-primary-100">
               <Avatar src={user.avatar} name={user.name} size="sm" online />
               <div className="min-w-0">
-                <p className="text-sm font-bold text-text truncate">{user.name.split(' ')[0]}</p>
+                <p className="text-sm font-bold text-text truncate">{user.name?.split(' ')[0] || 'User'}</p>
                 {user.isPremium && <Badge color="premium" size="xs">Premium</Badge>}
               </div>
             </div>

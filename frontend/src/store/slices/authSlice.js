@@ -10,9 +10,19 @@ export const loginUser = createAsyncThunk(
   async ({ email, password }, thunkAPI) => {
     try {
       const response = await api.post('/auth/login', { email, password });
+      
+      // Manually set the session on the frontend Supabase client 
+      // so that it gets saved to localStorage and persists across refreshes.
+      if (response.data.token && response.data.refreshToken) {
+        await supabase.auth.setSession({
+          access_token: response.data.token,
+          refresh_token: response.data.refreshToken,
+        });
+      }
+
       return response.data; // Expected: { id, name, email, avatar_url, role }
     } catch (error) {
-      return thunkAPI.rejectWithValue(error);
+      return thunkAPI.rejectWithValue(error.message);
     }
   }
 );
@@ -23,9 +33,17 @@ export const registerUser = createAsyncThunk(
   async ({ name, username, email, password }, thunkAPI) => {
     try {
       const response = await api.post('/auth/register', { name, username, email, password });
+      
+      if (response.data.token && response.data.refreshToken) {
+        await supabase.auth.setSession({
+          access_token: response.data.token,
+          refresh_token: response.data.refreshToken,
+        });
+      }
+
       return response.data;
     } catch (error) {
-      return thunkAPI.rejectWithValue(error);
+      return thunkAPI.rejectWithValue(error.message);
     }
   }
 );
@@ -54,7 +72,7 @@ export const fetchUserProfile = createAsyncThunk(
       const response = await api.get('/auth/profile');
       return response.data;
     } catch (error) {
-      return thunkAPI.rejectWithValue(error);
+      return thunkAPI.rejectWithValue(error.message);
     }
   }
 );
@@ -67,7 +85,7 @@ export const updateUserProfile = createAsyncThunk(
       const response = await api.put('/auth/profile', profileData);
       return response.data;
     } catch (error) {
-      return thunkAPI.rejectWithValue(error);
+      return thunkAPI.rejectWithValue(error.message);
     }
   }
 );
@@ -75,7 +93,7 @@ export const updateUserProfile = createAsyncThunk(
 const initialState = {
   user: null,
   isAuthenticated: false,
-  loading: false,
+  loading: true, // Start as true to prevent premature redirects
   error: null,
 };
 
@@ -92,6 +110,9 @@ const authSlice = createSlice({
     },
     clearAuthError: (state) => {
       state.error = null;
+    },
+    setAuthLoading: (state, action) => {
+      state.loading = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -144,6 +165,9 @@ const authSlice = createSlice({
         state.error = action.payload;
         state.user = null;
         state.isAuthenticated = false;
+        // If profile fetch fails (e.g. 401 because user was deleted or no public.users row),
+        // we must clear the local session to prevent infinite loops.
+        supabase.auth.signOut().catch(console.error);
       })
       // Update Profile
       .addCase(updateUserProfile.pending, (state) => {
@@ -160,5 +184,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setAuthSession, clearAuthError } = authSlice.actions;
+export const { setAuthSession, clearAuthError, setAuthLoading } = authSlice.actions;
 export default authSlice.reducer;
