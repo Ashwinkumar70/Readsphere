@@ -16,6 +16,7 @@ import notificationRoutes from './routes/notificationRoutes.js';
 import libraryRoutes from './routes/libraryRoutes.js';
 import authorRoutes from './routes/authorRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
 
 // Load env first, before anything else
 
@@ -48,7 +49,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-selected-role'],
 }));
 
 // ── Body parsers ──────────────────────────────────────────────────────────
@@ -65,10 +66,10 @@ const globalLimiter = rateLimit({
   message: { message: 'Too many requests, please try again later.' },
 });
 
-// Strict limiter for auth routes: 10 requests per 15 minutes
+// Strict limiter for auth routes: 100 requests per 15 minutes (bumped for dev)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Too many authentication attempts, please try again later.' },
@@ -87,6 +88,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/library', libraryRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // ── Base routes ───────────────────────────────────────────────────────────
 app.get('/', (req, res) => {

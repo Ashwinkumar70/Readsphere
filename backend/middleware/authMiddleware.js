@@ -65,6 +65,22 @@ const protect = async (req, res, next) => {
       finalProfile = newProfile;
     }
 
+    // Capture the selected role from frontend local storage (passed via header)
+    const selectedRole = req.headers['x-selected-role'];
+    if (selectedRole && ['Reader', 'Author', 'ReaderAuthor'].includes(selectedRole)) {
+      if (finalProfile.role !== selectedRole) {
+        // Upgrade the role from the default 'Reader' to the requested role
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({ role: selectedRole })
+          .eq('id', user.id);
+        
+        if (!updateError) {
+          finalProfile.role = selectedRole;
+        }
+      }
+    }
+
     // Reject deactivated/banned users on every request
     if (!finalProfile.is_active) {
       return res.status(403).json({ message: 'Account has been deactivated' });

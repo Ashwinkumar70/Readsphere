@@ -7,6 +7,7 @@ import authorReducer from './slices/authorSlice.js';
 import clubReducer from './slices/clubSlice.js';
 import marketplaceReducer from './slices/marketplaceSlice.js';
 import aiReducer from './slices/aiSlice.js';
+import dashboardReducer from './slices/dashboardSlice.js';
 
 export const store = configureStore({
   reducer: {
@@ -18,5 +19,6 @@ export const store = configureStore({
     clubs: clubReducer,
     marketplace: marketplaceReducer,
     ai: aiReducer,
+    dashboard: dashboardReducer,
   },
 });

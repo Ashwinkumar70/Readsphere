@@ -17,6 +17,10 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${session.access_token}`;
       console.log('[AUTH TRACE] Frontend - Sending Header:', config.headers.Authorization.substring(0, 25) + '...');
     }
+    const selectedRole = localStorage.getItem('selectedRole');
+    if (selectedRole) {
+      config.headers['x-selected-role'] = selectedRole;
+    }
     return config;
   },
   (error) => {

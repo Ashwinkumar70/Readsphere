@@ -1,177 +1,186 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { UploadCloud, TrendingUp, IndianRupee, Users, BookOpen, Star, MoreVertical } from 'lucide-react';
+import { 
+  UploadCloud, TrendingUp, IndianRupee, Users, BookOpen, Star, 
+  BarChart2, Edit3, MessageSquare, Globe, Activity, Download, PieChart, FileText
+} from 'lucide-react';
 import StatsCard from '../components/ui/StatsCard.jsx';
-import ChartCard, { SimpleBarChart } from '../components/ui/ChartCard.jsx';
-import { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchAuthorDashboard } from '../store/slices/authorSlice.js';
+import ChartCard, { SimpleBarChart, ProgressRing } from '../components/ui/ChartCard.jsx';
+import { useSelector } from 'react-redux';
 import Button from '../components/ui/Button.jsx';
 import Badge from '../components/ui/Badge.jsx';
+import DashboardLayout from '../components/layout/DashboardLayout.jsx';
 
 const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } };
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
 
 export default function AuthorDashboard() {
-  const dispatch = useDispatch();
-  const { dashboardData, loading } = useSelector(state => state.author);
-
-  useEffect(() => {
-    dispatch(fetchAuthorDashboard());
-  }, [dispatch]);
-
-  if (loading || !dashboardData) {
-    return (
-      <div className="p-6 max-w-[1400px] flex items-center justify-center min-h-[50vh]">
-        <p className="text-muted animate-pulse">Loading dashboard...</p>
-      </div>
-    );
-  }
-
-  const { stats, revenueData, books: authorBooks } = dashboardData;
+  const { data } = useSelector(state => state.dashboard);
 
   return (
-    <div className="p-6 max-w-[1400px]">
-      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-6">
+    <DashboardLayout>
+      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-8 p-8 bg-gray-50 rounded-3xl border border-gray-200">
 
-        {/* Header */}
-        <motion.div variants={fadeUp} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {/* Header - Studio Feel */}
+        <motion.div variants={fadeUp} className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-gray-200">
           <div>
-            <Badge color="premium" className="mb-2">Author Hub</Badge>
-            <h1 className="text-2xl font-bold text-text">Overview</h1>
+            <Badge color="premium" className="mb-2 bg-gray-900 text-white border-gray-900">Publishing Studio</Badge>
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Author Workspace</h1>
+            <p className="text-gray-500 mt-1">Manage your books, track performance, and grow your audience.</p>
           </div>
-          <Link to="/upload">
-            <Button icon={UploadCloud} size="md">Publish New Book</Button>
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link to="/upload"><Button icon={UploadCloud} size="sm" className="bg-gray-900 hover:bg-gray-800 text-white">Upload Book</Button></Link>
+            <Button icon={Edit3} size="sm" variant="outline" className="border-gray-300 text-gray-700">Edit Draft</Button>
+            <Button icon={BarChart2} size="sm" variant="outline" className="border-gray-300 text-gray-700">View Analytics</Button>
+          </div>
         </motion.div>
 
-        {/* Stats Row */}
-        <motion.div variants={stagger} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { title: 'Total Revenue', value: `₹${(stats?.totalRevenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: IndianRupee, color: 'success', change: 18, changeLabel: 'vs last month' },
-            { title: 'Books Sold', value: (stats?.booksSold || 0).toLocaleString(), icon: TrendingUp, color: 'primary', change: 12, changeLabel: 'vs last month' },
-            { title: 'Total Readers', value: (stats?.totalReaders || 0).toLocaleString(), icon: Users, color: 'secondary', change: 24, changeLabel: 'all time' },
-            { title: 'Avg Rating', value: stats?.avgRating || '0.0', icon: Star, color: 'warning', change: 2, changeLabel: 'vs last month' },
-          ].map((stat, i) => (
-            <motion.div key={i} variants={fadeUp}>
-              <StatsCard {...stat} />
-            </motion.div>
-          ))}
+        {/* Deep Stats Grid */}
+        <motion.div variants={stagger} className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          <StatsCard title="Total Revenue" value={`₹${(data?.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={IndianRupee} color="success" />
+          <StatsCard title="Monthly Sales" value={(data?.sales || 0).toLocaleString()} icon={TrendingUp} color="primary" />
+          <StatsCard title="Total Readers" value={(data?.readers || 0).toLocaleString()} icon={Users} color="secondary" />
+          <StatsCard title="Downloads" value={(data?.downloads || 0).toLocaleString()} icon={Download} color="warning" />
+          <StatsCard title="Avg Rating" value={data?.averageRating || "0.0"} icon={Star} color="warning" />
+          
+          <StatsCard title="Published Books" value={(data?.publishedBooks || 0).toLocaleString()} icon={BookOpen} />
+          <StatsCard title="Draft Books" value={(data?.draftBooks || 0).toLocaleString()} icon={FileText} />
+          <StatsCard title="Followers" value="0" icon={Users} />
+          <StatsCard title="Royalty Earned" value="₹0.00" icon={PieChart} />
+          <StatsCard title="Profile Views" value="0" icon={Activity} />
         </motion.div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Revenue Chart */}
-          <div className="lg:col-span-2 space-y-6">
-            <motion.div variants={fadeUp}>
-              <ChartCard
-                title="Revenue Overview"
-                subtitle="Monthly earnings from book sales"
-                action={
-                  <select className="text-sm border border-border rounded-lg px-2 py-1 outline-none">
-                    <option>Last 6 Months</option>
-                    <option>This Year</option>
-                  </select>
-                }
-              >
-                <div className="mt-4">
-                  <SimpleBarChart
-                    data={revenueData?.map(d => ({ label: d.name, value: d.value })) || []}
-                    height={200}
-                  />
-                </div>
-              </ChartCard>
-            </motion.div>
+        <div className="grid lg:grid-cols-3 gap-8">
+          
+          {/* Main Analytics Area */}
+          <div className="lg:col-span-2 space-y-8">
+            <div className="grid sm:grid-cols-2 gap-8">
+              <motion.div variants={fadeUp} className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                <ChartCard title="Revenue Graph" subtitle="Gross earnings over time">
+                  <div className="mt-4">
+                    <SimpleBarChart data={data?.monthlySalesChart || []} height={180} />
+                  </div>
+                </ChartCard>
+              </motion.div>
 
-            {/* Published Books List */}
-            <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-border p-5 shadow-soft">
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="text-base font-bold text-text">Published Books</h2>
-                <Button variant="ghost" size="sm">View All</Button>
+              <motion.div variants={fadeUp} className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                <ChartCard title="Sales Graph" subtitle="Unit sales volume">
+                  <div className="mt-4">
+                    <SimpleBarChart data={data?.monthlySalesChart || []} height={180} />
+                  </div>
+                </ChartCard>
+              </motion.div>
+            </div>
+
+            {/* Book Performance Table */}
+            <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-bold text-gray-900">Book Performance</h2>
+                <Button variant="ghost" size="sm">Download CSV</Button>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
-                  <thead className="text-xs text-muted uppercase bg-gray-50 border-y border-border">
+                  <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-y border-gray-200">
                     <tr>
-                      <th className="px-4 py-3 font-semibold rounded-tl-xl">Book</th>
-                      <th className="px-4 py-3 font-semibold">Sales</th>
+                      <th className="px-4 py-3 font-semibold rounded-tl-xl">Title</th>
+                      <th className="px-4 py-3 font-semibold">Status</th>
+                      <th className="px-4 py-3 font-semibold">Downloads</th>
                       <th className="px-4 py-3 font-semibold">Revenue</th>
-                      <th className="px-4 py-3 font-semibold">Rating</th>
-                      <th className="px-4 py-3 font-semibold rounded-tr-xl"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border">
-                    {authorBooks?.map(book => {
-                      // Generating the mock sales/revenue from the controller logic again for display consistency
-                      const sold = Math.floor(Math.random() * 500); 
-                      const revenue = (book.price || 0) * sold;
-                      return (
+                  <tbody className="divide-y divide-gray-100">
+                    {data?.booksList?.length > 0 ? data.booksList.map(book => (
                       <tr key={book.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <img src={book.cover} alt={book.title} className="w-10 h-14 rounded object-cover shadow-sm" />
-                            <div>
-                              <p className="font-bold text-text truncate max-w-[200px]">{book.title}</p>
-                              <Badge color="success" size="xs" className="mt-1">Published</Badge>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 font-medium">{sold.toLocaleString()}</td>
-                        <td className="px-4 py-3 font-bold text-success">₹{revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-1">
-                            <Star size={12} className="fill-amber-400 text-amber-400" />
-                            <span className="font-bold">{book.rating || 0}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <button className="p-1.5 text-muted hover:bg-gray-200 rounded-md transition-colors">
-                            <MoreVertical size={16} />
-                          </button>
-                        </td>
+                        <td className="px-4 py-4 font-bold text-gray-900 truncate max-w-[200px]">{book.title}</td>
+                        <td className="px-4 py-4"><Badge color={book.status === 'Published' ? 'success' : 'default'} size="xs">{book.status}</Badge></td>
+                        <td className="px-4 py-4 text-gray-600">{(book.downloads || 0).toLocaleString()}</td>
+                        <td className="px-4 py-4 font-medium text-gray-900">₹{(book.price || 0).toLocaleString()}</td>
                       </tr>
-                    )})}
+                    )) : (
+                      <tr>
+                        <td colSpan="4" className="px-4 py-8 text-center text-gray-500">No data available.</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
             </motion.div>
+            
+            <div className="grid sm:grid-cols-2 gap-8">
+              {/* Traffic Analytics */}
+              <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><Activity size={18}/> Traffic Analytics</h3>
+                <p className="text-sm text-gray-500">No traffic data available yet.</p>
+              </motion.div>
+              {/* Country-wise Readers */}
+              <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><Globe size={18}/> Country-wise Readers</h3>
+                <p className="text-sm text-gray-500">Insufficient geographic data.</p>
+              </motion.div>
+            </div>
           </div>
 
-          {/* Right Column */}
-          <div className="space-y-6">
-            {/* Quick Actions */}
-            <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-border p-5 shadow-soft">
-              <h3 className="font-bold text-text mb-4">Quick Actions</h3>
-              <div className="space-y-2">
-                <Button full variant="outline" className="justify-start border-gray-200">
-                  <UploadCloud size={16} className="text-muted mr-2" /> Upload Draft
-                </Button>
-                <Button full variant="outline" className="justify-start border-gray-200">
-                  <Users size={16} className="text-muted mr-2" /> Message Followers
-                </Button>
-                <Button full variant="outline" className="justify-start border-gray-200">
-                  <DollarSign size={16} className="text-muted mr-2" /> Request Payout
-                </Button>
+          {/* Right Sidebar - Social & Engagement */}
+          <div className="space-y-8">
+            
+            <motion.div variants={fadeUp} className="bg-gray-900 rounded-2xl p-6 text-white shadow-lg">
+              <h3 className="font-bold text-white mb-2">Top Selling Book</h3>
+              {data?.bestSellingBook ? (
+                <div className="flex items-center gap-4 mt-4">
+                  <div className="w-16 h-24 bg-gray-800 rounded flex-shrink-0" />
+                  <div>
+                    <p className="font-bold">{data.bestSellingBook.title}</p>
+                    <p className="text-sm text-gray-400 mt-1">Leading sales this month</p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 mt-2">Publish a book to see rankings.</p>
+              )}
+            </motion.div>
+
+            <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-gray-900 flex items-center gap-2"><MessageSquare size={18}/> Reader Reviews</h3>
+                <span className="text-xs font-semibold text-primary cursor-pointer hover:underline">Respond</span>
+              </div>
+              <div className="space-y-4">
+                {data?.recentReviews?.length > 0 ? (
+                  data.recentReviews.map((r, i) => (
+                    <div key={i} className="text-sm border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+                      <div className="flex items-center gap-1 mb-1">
+                        <Star size={12} className="text-amber-400 fill-amber-400" />
+                        <span className="font-bold">{r.rating}</span>
+                      </div>
+                      <p className="text-gray-600 line-clamp-2">"{r.comment}"</p>
+                      <p className="text-xs text-gray-400 mt-1">- {r.reviewer}</p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500">No reviews to moderate.</p>
+                )}
+              </div>
+            </motion.div>
+            
+            <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+              <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><IndianRupee size={18}/> Recent Purchases</h3>
+              <div className="space-y-4">
+                {data?.recentPurchases?.length > 0 ? (
+                  data.recentPurchases.map((p, i) => (
+                    <div key={i} className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600 truncate mr-2">{p.bookTitle}</span>
+                      <span className="font-bold text-success">+₹{p.amount}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500">No recent transactions.</p>
+                )}
               </div>
             </motion.div>
 
-            {/* Reader Insights */}
-            <motion.div variants={fadeUp} className="bg-gradient-primary rounded-2xl p-6 text-white shadow-card relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-4 opacity-10">
-                <BookOpen size={100} />
-              </div>
-              <div className="relative">
-                <Badge className="bg-white/20 text-white border-white/20 mb-4">Insights</Badge>
-                <h3 className="text-lg font-bold mb-2">Did you know?</h3>
-                <p className="text-white/80 text-sm leading-relaxed mb-6">
-                  78% of your readers finish your books within the first 3 days. Your most highlighted chapter is Chapter 4 of "Project Hail Mary".
-                </p>
-                <Button variant="white" size="sm">View Deep Analytics</Button>
-              </div>
-            </motion.div>
           </div>
         </div>
 
       </motion.div>
-    </div>
+    </DashboardLayout>
   );
 }

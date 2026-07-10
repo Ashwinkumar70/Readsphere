@@ -30,9 +30,9 @@ export const loginUser = createAsyncThunk(
 // Register
 export const registerUser = createAsyncThunk(
   'auth/registerUser',
-  async ({ name, username, email, password }, thunkAPI) => {
+  async ({ name, username, email, password, role }, thunkAPI) => {
     try {
-      const response = await api.post('/auth/register', { name, username, email, password });
+      const response = await api.post('/auth/register', { name, username, email, password, role });
       
       if (response.data.token && response.data.refreshToken) {
         await supabase.auth.setSession({

@@ -152,14 +152,36 @@ export default function Login() {
         </Link>
       </motion.div>
 
-      {/* ── Center card ──────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-center px-4 relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 32, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
-          className="w-full max-w-[420px]"
-        >
+      {/* ── Main Layout ──────────────────────────────── */}
+      <div className="flex-1 flex flex-col lg:flex-row relative z-10 w-full h-full">
+        {/* Left Side - Large Branding */}
+        <div className="hidden lg:flex flex-1 flex-col items-center justify-center relative">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
+            className="flex flex-col items-center"
+          >
+            <div className="w-64 h-64 rounded-[3rem] flex items-center justify-center overflow-hidden shadow-2xl mb-8 border-[8px] border-white/50" style={{ background: 'white' }}>
+              <img src="/logo.png" alt="ReadSphere Logo" className="w-full h-full object-cover" />
+            </div>
+            <h2 className="text-5xl font-black mb-3 text-center" style={{ fontFamily: 'Outfit, sans-serif', color: PRIMARY }}>
+              ReadSphere
+            </h2>
+            <p className="text-lg text-center max-w-sm" style={{ color: 'rgba(0,71,65,0.7)' }}>
+              Your gateway to endless stories, powerful AI insights, and a global reading community.
+            </p>
+          </motion.div>
+        </div>
+
+        {/* Right Side - Form Card */}
+        <div className="flex-1 flex items-center justify-center px-4 lg:p-12">
+          <motion.div
+            initial={{ opacity: 0, y: 32, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+            className="w-full max-w-[420px]"
+          >
           {/* Icon badge */}
           <motion.div
             initial={{ opacity: 0, scale: 0.6, y: 16 }}
@@ -325,6 +347,7 @@ export default function Login() {
           </div>
         </motion.div>
       </div>
+    </div>
 
       {/* ── Feature bar ──────────────────────────────── */}
       <motion.div
