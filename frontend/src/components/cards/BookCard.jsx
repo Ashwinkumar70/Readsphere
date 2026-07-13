@@ -27,14 +27,14 @@ export default function BookCard({ book, size = 'md', showProgress = false }) {
       <Link to={`/books/${book.id}`}>
         <div className="relative mb-3">
           {/* Cover */}
-          <div className={`${s.cover} rounded-xl overflow-hidden book-cover relative`}>
+          <div className={`${s.cover} rounded-[20px] overflow-hidden book-cover relative shadow-soft group-hover:shadow-soft-lg transition-all duration-300 ring-1 ring-black/5`}>
             <img
               src={book.cover}
               alt={book.title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
             {/* Overlay on hover */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3 gap-2">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3 gap-2">
               <button className="flex-1 bg-white/90 backdrop-blur-sm text-primary text-xs font-bold py-1.5 px-3 rounded-lg flex items-center justify-center gap-1 hover:bg-white transition-colors">
                 <BookOpen size={12} />
                 Preview

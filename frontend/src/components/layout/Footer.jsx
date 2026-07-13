@@ -24,8 +24,8 @@ const footerLinks = {
     { label: 'About', to: '/' },
     { label: 'Blog', to: '/' },
     { label: 'Careers', to: '/' },
-    { label: 'Privacy', to: '/' },
-    { label: 'Terms', to: '/' },
+    { label: 'Privacy Policy', to: '/privacy' },
+    { label: 'Terms of Service', to: '/terms' },
   ],
 };
 

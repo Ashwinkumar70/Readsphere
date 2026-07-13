@@ -3,182 +3,193 @@ import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { 
   BookOpen, Flame, TrendingUp, Users, IndianRupee, Play, UploadCloud, Search, 
-  BarChart2, Star, Target, Edit3, Compass, LayoutList
+  BarChart2, Star, Target, Edit3, Compass, LayoutList, CheckCircle, Sparkles, Activity, Clock,
+  FileText
 } from 'lucide-react';
 import StatsCard from '../components/ui/StatsCard.jsx';
-import ChartCard, { SimpleBarChart, ProgressRing } from '../components/ui/ChartCard.jsx';
+import ChartCard, { SimpleBarChart } from '../components/ui/ChartCard.jsx';
+import AnalyticsCard from '../components/ui/AnalyticsCard.jsx';
+import TimelineCard from '../components/ui/TimelineCard.jsx';
+import EmptyState from '../components/ui/EmptyState.jsx';
 import Badge from '../components/ui/Badge.jsx';
 import Button from '../components/ui/Button.jsx';
 import DashboardLayout from '../components/layout/DashboardLayout.jsx';
 import BookCard from '../components/cards/BookCard.jsx';
 
-const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } };
-const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
+const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } } };
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.08 } } };
 
 export default function ReaderAuthorDashboard() {
   const { data } = useSelector(state => state.dashboard);
   const user = useSelector(state => state.auth.user);
 
   const { reader, author, combined } = data || {};
+  const currentBook = reader?.currentlyReading?.[0];
 
   return (
     <DashboardLayout>
-      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-12 pb-12">
+      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-10 pb-12">
 
-        {/* Global Header */}
-        <motion.div variants={fadeUp} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white p-8 rounded-3xl border border-border shadow-soft">
-          <div>
-            <Badge color="premium" className="mb-2">Hybrid Workspace</Badge>
-            <h1 className="text-3xl font-bold text-text">Welcome, {user?.name}</h1>
-            <p className="text-muted mt-2">Manage your reading journey and publishing empire in one place.</p>
+        {/* 1. GLOBAL HERO */}
+        <motion.div variants={fadeUp} className="bg-gradient-primary rounded-[32px] p-8 md:p-10 text-white shadow-soft-lg relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-[0.03] rounded-full blur-3xl pointer-events-none" />
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+            <div className="max-w-xl">
+              <Badge color="premium" className="mb-4 bg-white/20 text-white border-none backdrop-blur-sm">Hybrid Workspace</Badge>
+              <h1 className="text-4xl font-heading font-bold mb-2 tracking-tight">Morning Brief, {user?.name?.split(' ')[0]}</h1>
+              <p className="text-white/80 font-light text-lg">Manage your reading journey and publishing empire in one unified place.</p>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+              <Link to="/library">
+                <Button icon={Play} className="w-full bg-white text-primary hover:bg-gray-50 border-none shadow-soft">Continue Reading</Button>
+              </Link>
+              <Link to="/upload">
+                <Button icon={UploadCloud} variant="outline" className="w-full border-white/30 text-white hover:bg-white/10 backdrop-blur-sm">Upload Book</Button>
+              </Link>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Link to="/library"><Button icon={Play} size="sm" className="bg-primary hover:bg-primary-hover">Continue Reading</Button></Link>
-            <Link to="/upload"><Button icon={UploadCloud} size="sm" className="bg-gray-900 text-white hover:bg-gray-800 border-none">Upload Book</Button></Link>
-            <Button icon={Edit3} size="sm" variant="outline">Edit Draft</Button>
-            <Link to="/marketplace"><Button icon={Search} size="sm" variant="outline">Search Books</Button></Link>
-            <Button icon={BarChart2} size="sm" variant="ghost" />
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-8 border-t border-white/10 relative z-10">
+            <div>
+              <p className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-1">Reading Goal</p>
+              <p className="text-2xl font-bold font-heading">{reader?.readingGoal || 0} <span className="text-sm font-normal text-white/60">books</span></p>
+            </div>
+            <div>
+              <p className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-1">Reading Streak</p>
+              <p className="text-2xl font-bold font-heading">{reader?.readingStreak || 0} <span className="text-sm font-normal text-white/60">days</span></p>
+            </div>
+            <div>
+              <p className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-1">Books Published</p>
+              <p className="text-2xl font-bold font-heading">{author?.publishedBooks || 0}</p>
+            </div>
+            <div>
+              <p className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-1">Total Revenue</p>
+              <p className="text-2xl font-bold font-heading">₹{(author?.revenue || 0).toLocaleString()}</p>
+            </div>
           </div>
         </motion.div>
 
-        <div className="grid lg:grid-cols-2 gap-12">
+        <div className="grid lg:grid-cols-2 gap-10">
           
           {/* ======================================= */}
-          {/* READER SECTION */}
+          {/* READER WORKSPACE */}
           {/* ======================================= */}
           <section className="space-y-6">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+              <div className="w-10 h-10 rounded-[16px] bg-primary/10 flex items-center justify-center text-primary">
                 <BookOpen size={20} />
               </div>
-              <h2 className="text-2xl font-bold text-text">Reader Hub</h2>
+              <h2 className="text-2xl font-heading font-bold text-text">Reading Progress</h2>
             </div>
             
-            <motion.div variants={stagger} className="grid grid-cols-2 gap-4">
-              <StatsCard title="Books Read" value={reader?.booksRead || 0} icon={BookOpen} trend="On track" />
-              <StatsCard title="Pages Read" value={reader?.pagesRead || 0} icon={LayoutList} trendUp />
-              <StatsCard title="Reading Streak" value={`${reader?.readingStreak || 0} Days`} icon={Flame} color="warning" />
-              <StatsCard title="Reading Goal" value={reader?.readingGoal || 20} icon={Target} />
-            </motion.div>
-
-            <motion.div variants={fadeUp} className="bg-[#FDFBF7] rounded-2xl border border-border p-6 shadow-sm">
-              <h3 className="font-bold text-text mb-4">Continue Reading</h3>
-              {reader?.currentlyReading?.length > 0 ? (
-                <div className="flex gap-4 items-center bg-white p-4 rounded-xl shadow-sm border border-border">
-                  <img src={reader.currentlyReading[0].cover} alt="Cover" className="w-14 h-20 object-cover rounded shadow-sm" />
+            <motion.div variants={fadeUp} className="bg-white rounded-[24px] border border-transparent hover:border-primary/10 p-6 shadow-soft transition-colors group">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="font-bold font-heading text-text">Currently Reading</h3>
+                <Link to="/library" className="text-xs text-primary font-medium hover:underline">Library</Link>
+              </div>
+              {currentBook ? (
+                <div className="flex gap-4 items-center">
+                  <img src={currentBook.cover} alt="Cover" className="w-16 h-24 object-cover rounded-lg shadow-soft" />
                   <div className="flex-1">
-                    <h4 className="font-bold text-sm line-clamp-1">{reader.currentlyReading[0].title}</h4>
-                    <p className="text-xs text-muted mb-2">{reader.currentlyReading[0].author}</p>
-                    <div className="w-full bg-gray-100 rounded-full h-1.5 mb-1">
-                      <div className="bg-primary h-1.5 rounded-full" style={{ width: `${reader.currentlyReading[0].readProgress}%` }} />
+                    <h4 className="font-bold text-text line-clamp-1">{currentBook.title}</h4>
+                    <p className="text-sm text-muted mb-3">{currentBook.author}</p>
+                    <div className="w-full bg-gray-100 rounded-full h-1.5 mb-2">
+                      <div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${currentBook.readProgress}%` }} />
+                    </div>
+                    <div className="flex justify-between text-xs text-muted">
+                      <span>{currentBook.readProgress}%</span>
                     </div>
                   </div>
-                  <Button icon={Play} size="sm" variant="outline" className="px-2 py-1 h-auto" />
+                  <Link to="/library">
+                    <Button icon={Play} className="rounded-full w-10 h-10 p-0 flex items-center justify-center bg-gray-50 text-primary hover:bg-primary hover:text-white border border-border transition-colors shrink-0" />
+                  </Link>
                 </div>
               ) : (
-                <p className="text-sm text-muted">No active books.</p>
+                <EmptyState icon={BookOpen} title="No active books" description="Find your next read." actionLabel="Discover" actionLink="/marketplace" className="p-4 border-none bg-transparent"/>
               )}
             </motion.div>
             
-            <motion.div variants={fadeUp} className="bg-[#FDFBF7] rounded-2xl border border-border p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-text">Recommended</h3>
-                <Link to="/marketplace" className="text-xs text-primary font-medium hover:underline">View All</Link>
+            <motion.div variants={fadeUp} className="bg-white rounded-[24px] border border-transparent p-6 shadow-soft hover:border-primary/10 transition-colors">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="font-bold font-heading text-text">Recommendations</h3>
+                <Link to="/marketplace" className="text-xs text-primary font-medium hover:underline">Discover</Link>
               </div>
-              <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar">
+              <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar snap-x">
                 {combined?.recommendations?.length > 0 ? (
                   combined.recommendations.map((book, i) => (
-                    <BookCard key={i} book={book} size="sm" className="min-w-[120px]" />
+                    <div key={i} className="snap-start shrink-0 w-28">
+                      <BookCard book={book} size="sm" className="border-none shadow-none bg-transparent hover:-translate-y-1 transition-transform" />
+                    </div>
                   ))
                 ) : (
-                  <p className="text-sm text-muted">Check out the marketplace for suggestions.</p>
+                  <EmptyState icon={Compass} title="No recommendations" description="Check the marketplace for suggestions." className="p-4 w-full border-none bg-transparent" />
                 )}
               </div>
             </motion.div>
           </section>
 
           {/* ======================================= */}
-          {/* AUTHOR SECTION */}
+          {/* AUTHOR WORKSPACE */}
           {/* ======================================= */}
           <section className="space-y-6">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-gray-900 text-white flex items-center justify-center">
+              <div className="w-10 h-10 rounded-[16px] bg-text text-white flex items-center justify-center shadow-soft">
                 <Edit3 size={20} />
               </div>
-              <h2 className="text-2xl font-bold text-text">Author Hub</h2>
+              <h2 className="text-2xl font-heading font-bold text-text">Sales Progress</h2>
             </div>
             
             <motion.div variants={stagger} className="grid grid-cols-2 gap-4">
-              <StatsCard title="Books Published" value={(author?.publishedBooks || 0).toLocaleString()} icon={BookOpen} />
-              <StatsCard title="Total Readers" value={(author?.readers || 0).toLocaleString()} icon={Users} color="secondary" />
-              <StatsCard title="Total Revenue" value={`₹${(author?.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={IndianRupee} color="success" />
-              <StatsCard title="Downloads" value={(author?.sales || 0).toLocaleString()} icon={TrendingUp} color="primary" />
+              <StatsCard title="Monthly Sales" value={(author?.sales || 0).toLocaleString()} icon={TrendingUp} color="primary" className="bg-white border-transparent hover:border-primary/10 transition-colors" />
+              <StatsCard title="Total Readers" value={(author?.readers || 0).toLocaleString()} icon={Users} color="secondary" className="bg-white border-transparent hover:border-primary/10 transition-colors" />
             </motion.div>
 
-            <motion.div variants={fadeUp} className="bg-gray-50 rounded-2xl border border-border p-6 shadow-sm">
-              <ChartCard title="Revenue Growth" subtitle="Sales performance">
-                <div className="mt-4">
-                  <SimpleBarChart data={combined?.monthlyRevenue || []} height={150} />
-                </div>
-              </ChartCard>
+            <motion.div variants={fadeUp} className="grid grid-cols-1">
+              <AnalyticsCard title="Revenue Growth" subtitle="Earnings tracking">
+                {combined?.monthlyRevenue?.length > 0 ? (
+                  <SimpleBarChart data={combined.monthlyRevenue} height={140} />
+                ) : (
+                  <EmptyState icon={IndianRupee} title="No revenue data" description="Publish a book to start tracking earnings." className="mt-4 p-4 border-none shadow-none bg-transparent"/>
+                )}
+              </AnalyticsCard>
             </motion.div>
             
-            <motion.div variants={fadeUp} className="bg-gray-50 rounded-2xl border border-border p-6 shadow-sm">
-              <h3 className="font-bold text-text mb-4">Publishing Tasks</h3>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-border text-sm">
-                  <div className="w-2 h-2 rounded-full bg-warning" />
-                  <span className="flex-1">Finish drafting Chapter 5</span>
-                </div>
-                <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-border text-sm">
-                  <div className="w-2 h-2 rounded-full bg-primary" />
-                  <span className="flex-1">Review editor feedback</span>
-                </div>
-              </div>
-            </motion.div>
           </section>
 
         </div>
 
         {/* ======================================= */}
-        {/* COMBINED ACTIVITY SECTION */}
+        {/* UNIFIED ACTIVITY & AI WORKSPACE */}
         {/* ======================================= */}
-        <section>
-          <h2 className="text-xl font-bold text-text mb-6">Combined Activity</h2>
-          <div className="grid md:grid-cols-3 gap-6">
+        <section className="pt-6 border-t border-gray-100">
+          <div className="grid lg:grid-cols-3 gap-8">
             
-            <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-border p-6 shadow-sm">
-              <h3 className="font-bold text-text mb-4 text-sm text-muted uppercase tracking-wider">Book Performance</h3>
-              {combined?.topSellingBook ? (
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-16 bg-gray-100 rounded border border-border flex-shrink-0" />
-                  <div>
-                    <p className="font-bold">{combined.topSellingBook.title}</p>
-                    <p className="text-sm text-success font-medium">Top Seller</p>
+            <motion.div variants={fadeUp} className="bg-gradient-card rounded-[24px] border border-border p-6 shadow-soft relative overflow-hidden group">
+               <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opacity-50 pointer-events-none" />
+               <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center text-accent">
+                      <Sparkles size={16} />
+                    </div>
+                    <h3 className="font-bold font-heading text-text">AI Workspace</h3>
                   </div>
-                </div>
-              ) : (
-                <p className="text-sm text-muted">No books published yet.</p>
-              )}
-            </motion.div>
-            
-            <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-border p-6 shadow-sm">
-              <h3 className="font-bold text-text mb-4 text-sm text-muted uppercase tracking-wider">Recent Reviews</h3>
-              {combined?.recentReviews?.length > 0 ? (
-                combined.recentReviews.slice(0, 2).map((r, i) => (
-                  <div key={i} className="flex items-center gap-2 mt-2">
-                    <Star size={12} className="text-amber-400 fill-amber-400" />
-                    <span className="text-sm text-muted">{r.rating} - {r.bookTitle}</span>
+                  <p className="text-sm text-muted mb-5">Smart tools for both reading and writing.</p>
+                  
+                  <div className="space-y-2">
+                    <Button variant="outline" className="w-full justify-start bg-white hover:border-accent hover:text-accent border-border shadow-sm"><BookOpen size={16} className="mr-2"/> AI Reader Assistant</Button>
+                    <Button variant="outline" className="w-full justify-start bg-white hover:border-accent hover:text-accent border-border shadow-sm"><Edit3 size={16} className="mr-2"/> AI Writing Assistant</Button>
+                    <Button variant="outline" className="w-full justify-start bg-white hover:border-accent hover:text-accent border-border shadow-sm"><BarChart2 size={16} className="mr-2"/> AI Marketing Copilot</Button>
                   </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted mt-1">No reviews received yet.</p>
-              )}
+               </div>
             </motion.div>
-            
-            <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-border p-6 shadow-sm">
-              <h3 className="font-bold text-text mb-4 text-sm text-muted uppercase tracking-wider">Notifications</h3>
-              <p className="text-sm text-muted">You're all caught up!</p>
+
+            <motion.div variants={fadeUp} className="bg-white rounded-[24px] border border-transparent hover:border-primary/10 p-6 shadow-soft transition-colors lg:col-span-2">
+               <h3 className="font-bold font-heading text-text mb-6 flex items-center gap-2"><Activity size={18}/> Unified Timeline</h3>
+               <TimelineCard 
+                 activities={combined?.recentActivity} 
+                 emptyState={<EmptyState icon={Clock} title="No activity" description="Your reading and publishing journey will appear here." className="p-4 border-none bg-transparent"/>}
+               />
             </motion.div>
 
           </div>

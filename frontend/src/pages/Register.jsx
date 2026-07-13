@@ -97,6 +97,7 @@ export default function Register() {
   const dispatch = useDispatch();
   const [showPass, setShowPass] = useState(false);
   const [agreed,   setAgreed]   = useState(false);
+  const [showTermsError, setShowTermsError] = useState(false);
   const [role, setRole] = useState(null);
   const [form, setForm] = useState({ name: '', username: '', email: '', password: '' });
   const { loading, error } = useSelector((state) => state.auth);
@@ -106,10 +107,21 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!role) { toast.error('Please select an account type'); return; }
-    if (!agreed) { toast.error('Please agree to the Terms of Service'); return; }
+    if (!agreed) { 
+      setShowTermsError(true);
+      toast.error('Please accept the Terms of Service and Privacy Policy'); 
+      return; 
+    }
+    setShowTermsError(false);
     const mappedRole = role === 'Author and Reader' ? 'ReaderAuthor' : role;
     localStorage.setItem('selectedRole', mappedRole);
-    const resultAction = await dispatch(registerUser({ ...form, role: mappedRole }));
+    const resultAction = await dispatch(registerUser({ 
+      ...form, 
+      role: mappedRole,
+      acceptedTerms: agreed,
+      acceptedPrivacy: agreed,
+      acceptedAt: new Date().toISOString()
+    }));
     if (registerUser.fulfilled.match(resultAction)) {
       navigate(getDashboardRoute(resultAction.payload.role));
     } else {
@@ -158,17 +170,73 @@ export default function Register() {
 
       {/* ── Main Layout ──────────────────────────────── */}
       <div className="flex-1 flex flex-col lg:flex-row relative z-10 w-full h-full">
-        {/* Left Side - Large Branding */}
-        <div className="hidden lg:flex flex-1 flex-col items-center justify-center relative">
+        {/* Left Side - Animated Branding */}
+        <div className="hidden lg:flex flex-1 flex-col items-center justify-center relative overflow-hidden">
+          
+          {/* Animated Rings */}
+          <motion.div 
+            animate={{ rotate: 360 }} 
+            transition={{ duration: 50, repeat: Infinity, ease: "linear" }}
+            className="absolute w-[600px] h-[600px] border border-dashed rounded-full" style={{ borderColor: 'rgba(0,71,65,0.15)' }} 
+          />
+          <motion.div 
+            animate={{ rotate: -360 }} 
+            transition={{ duration: 70, repeat: Infinity, ease: "linear" }}
+            className="absolute w-[450px] h-[450px] border rounded-full" style={{ borderColor: 'rgba(0,71,65,0.08)' }} 
+          />
+
+          {/* Floating abstract book cards */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ y: [0, -20, 0], rotate: [-12, -8, -12] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute top-[20%] left-[20%] w-24 h-32 rounded-2xl shadow-xl backdrop-blur-md flex flex-col p-3 gap-2"
+            style={{ background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.8)' }}
+          >
+            <div className="w-full h-3 rounded bg-primary/20" />
+            <div className="w-3/4 h-2 rounded bg-primary/10" />
+            <div className="w-1/2 h-2 rounded bg-primary/10" />
+          </motion.div>
+
+          <motion.div
+            animate={{ y: [0, 25, 0], rotate: [15, 20, 15] }}
+            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+            className="absolute bottom-[25%] right-[20%] w-28 h-40 rounded-2xl shadow-2xl backdrop-blur-md flex flex-col p-4 gap-2"
+            style={{ background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.9)' }}
+          >
+            <div className="w-full h-1/2 rounded-lg bg-gradient-to-br from-primary/30 to-primary/5" />
+            <div className="w-full h-3 rounded bg-primary/20 mt-2" />
+            <div className="w-2/3 h-2 rounded bg-primary/10" />
+          </motion.div>
+
+          <motion.div
+            animate={{ y: [0, -15, 0], scale: [1, 1.05, 1] }}
+            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+            className="absolute top-[35%] right-[25%] w-12 h-12 rounded-full backdrop-blur-sm flex items-center justify-center shadow-lg"
+            style={{ background: 'rgba(200,155,60,0.15)', border: '1px solid rgba(200,155,60,0.3)' }}
+          >
+            <Sparkles size={20} style={{ color: GOLD }} />
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
-            className="flex flex-col items-center"
+            className="flex flex-col items-center relative z-10"
           >
-            <div className="w-64 h-64 rounded-[3rem] flex items-center justify-center overflow-hidden shadow-2xl mb-8 border-[8px] border-white/50" style={{ background: 'white' }}>
-              <img src="/logo.png" alt="ReadSphere Logo" className="w-full h-full object-cover" />
-            </div>
+            <motion.div 
+              animate={{ y: [0, -8, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              className="w-64 h-64 rounded-[3rem] flex items-center justify-center overflow-hidden shadow-2xl mb-8 relative" 
+              style={{ background: 'white', border: '8px solid rgba(255,255,255,0.7)' }}
+            >
+              <motion.div 
+                animate={{ opacity: [0, 0.4, 0] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent pointer-events-none"
+              />
+              <img src="/logo.png" alt="ReadSphere Logo" className="w-full h-full object-cover relative z-10" />
+            </motion.div>
+            
             <h2 className="text-5xl font-black mb-3 text-center" style={{ fontFamily: 'Outfit, sans-serif', color: PRIMARY }}>
               ReadSphere
             </h2>
@@ -279,28 +347,55 @@ export default function Register() {
               </div>
 
               {/* Terms */}
-              <label className="flex items-start gap-2.5 cursor-pointer py-1" onClick={() => setAgreed(a => !a)}>
-                <motion.div
-                  className="w-4 h-4 rounded flex items-center justify-center border mt-0.5 shrink-0 cursor-pointer"
-                  animate={{ background: agreed ? GOLD : 'rgba(255,255,255,0.8)', borderColor: agreed ? GOLD : BORDER }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <AnimatePresence>
-                    {agreed && (
-                      <motion.svg key="chk" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-                        viewBox="0 0 10 8" className="w-2.5 h-2.5" fill="none">
-                        <path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </motion.svg>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-                <span className="text-[12px] leading-relaxed" style={{ color: 'rgba(0,71,65,0.6)' }}>
-                  I agree to the{' '}
-                  <span className="font-semibold hover:opacity-75" style={{ color: GOLD }}>Terms of Service</span>
-                  {' '}and{' '}
-                  <span className="font-semibold hover:opacity-75" style={{ color: GOLD }}>Privacy Policy</span>
-                </span>
-              </label>
+              <div className="flex flex-col gap-1 py-1">
+                <label className="flex items-start gap-2.5 cursor-pointer group" htmlFor="terms-checkbox">
+                  <input
+                    type="checkbox"
+                    id="terms-checkbox"
+                    className="sr-only"
+                    checked={agreed}
+                    onChange={(e) => {
+                      setAgreed(e.target.checked);
+                      if (e.target.checked) setShowTermsError(false);
+                    }}
+                    aria-required="true"
+                    aria-describedby={showTermsError ? "terms-error" : undefined}
+                  />
+                  <motion.div
+                    className="w-4 h-4 rounded flex items-center justify-center border mt-0.5 shrink-0 transition-colors group-focus-within:ring-2 group-focus-within:ring-offset-1 group-focus-within:ring-primary/50"
+                    animate={{ background: agreed ? GOLD : 'rgba(255,255,255,0.8)', borderColor: agreed ? GOLD : BORDER }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <AnimatePresence>
+                      {agreed && (
+                        <motion.svg key="chk" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+                          viewBox="0 0 10 8" className="w-2.5 h-2.5" fill="none">
+                          <path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </motion.svg>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                  <span className="text-[12px] leading-relaxed" style={{ color: 'rgba(0,71,65,0.6)' }}>
+                    I agree to the{' '}
+                    <Link to="/terms" target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline transition-all" style={{ color: GOLD }}>Terms of Service</Link>
+                    {' '}and{' '}
+                    <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline transition-all" style={{ color: GOLD }}>Privacy Policy</Link>
+                  </span>
+                </label>
+                <AnimatePresence>
+                  {showTermsError && (
+                    <motion.p 
+                      id="terms-error"
+                      initial={{ opacity: 0, height: 0 }} 
+                      animate={{ opacity: 1, height: 'auto' }} 
+                      exit={{ opacity: 0, height: 0 }}
+                      className="text-[11px] text-red-500 font-medium pl-6"
+                    >
+                      Please accept the Terms of Service and Privacy Policy before creating an account.
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </div>
 
               {/* Submit */}
               <motion.button
@@ -350,6 +445,11 @@ export default function Register() {
               type="button"
               onClick={async () => {
                 if (!role) { toast.error('Please select an account type first'); return; }
+                if (!agreed) {
+                  setShowTermsError(true);
+                  toast.error('Please accept the Terms of Service and Privacy Policy');
+                  return;
+                }
                 try {
                   const mappedRole = role === 'Author and Reader' ? 'ReaderAuthor' : role;
                   localStorage.setItem('selectedRole', mappedRole);

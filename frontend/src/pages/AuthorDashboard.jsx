@@ -2,184 +2,212 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
   UploadCloud, TrendingUp, IndianRupee, Users, BookOpen, Star, 
-  BarChart2, Edit3, MessageSquare, Globe, Activity, Download, PieChart, FileText
+  BarChart2, Edit3, MessageSquare, Activity, Download, PieChart, FileText,
+  Sparkles, PenTool, Image as ImageIcon, Search, ChevronRight, CheckCircle, Clock
 } from 'lucide-react';
 import StatsCard from '../components/ui/StatsCard.jsx';
-import ChartCard, { SimpleBarChart, ProgressRing } from '../components/ui/ChartCard.jsx';
+import ChartCard, { SimpleBarChart } from '../components/ui/ChartCard.jsx';
+import AnalyticsCard from '../components/ui/AnalyticsCard.jsx';
+import TimelineCard from '../components/ui/TimelineCard.jsx';
+import EmptyState from '../components/ui/EmptyState.jsx';
 import { useSelector } from 'react-redux';
 import Button from '../components/ui/Button.jsx';
 import Badge from '../components/ui/Badge.jsx';
 import DashboardLayout from '../components/layout/DashboardLayout.jsx';
 
-const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } };
-const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
+const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } } };
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.08 } } };
 
 export default function AuthorDashboard() {
   const { data } = useSelector(state => state.dashboard);
+  const user = useSelector(state => state.auth.user);
+
+  const reviewTimeline = data?.recentReviews?.map(r => ({
+    time: "Recent",
+    title: `${r.rating} Star Review from ${r.reviewer}`,
+    description: `"${r.comment}"`,
+    color: r.rating >= 4 ? '#10B981' : '#F59E0B'
+  })) || [];
 
   return (
     <DashboardLayout>
-      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-8 p-8 bg-gray-50 rounded-3xl border border-gray-200">
+      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-10 pb-12">
 
-        {/* Header - Studio Feel */}
-        <motion.div variants={fadeUp} className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-gray-200">
-          <div>
-            <Badge color="premium" className="mb-2 bg-gray-900 text-white border-gray-900">Publishing Studio</Badge>
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Author Workspace</h1>
-            <p className="text-gray-500 mt-1">Manage your books, track performance, and grow your audience.</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Link to="/upload"><Button icon={UploadCloud} size="sm" className="bg-gray-900 hover:bg-gray-800 text-white">Upload Book</Button></Link>
-            <Button icon={Edit3} size="sm" variant="outline" className="border-gray-300 text-gray-700">Edit Draft</Button>
-            <Button icon={BarChart2} size="sm" variant="outline" className="border-gray-300 text-gray-700">View Analytics</Button>
-          </div>
-        </motion.div>
-
-        {/* Deep Stats Grid */}
-        <motion.div variants={stagger} className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-          <StatsCard title="Total Revenue" value={`₹${(data?.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={IndianRupee} color="success" />
-          <StatsCard title="Monthly Sales" value={(data?.sales || 0).toLocaleString()} icon={TrendingUp} color="primary" />
-          <StatsCard title="Total Readers" value={(data?.readers || 0).toLocaleString()} icon={Users} color="secondary" />
-          <StatsCard title="Downloads" value={(data?.downloads || 0).toLocaleString()} icon={Download} color="warning" />
-          <StatsCard title="Avg Rating" value={data?.averageRating || "0.0"} icon={Star} color="warning" />
+        {/* 1. STUDIO OVERVIEW HERO */}
+        <motion.div variants={fadeUp} className="bg-white rounded-[32px] border border-border p-8 md:p-10 shadow-soft relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-accent/10 to-transparent rounded-bl-full pointer-events-none" />
           
-          <StatsCard title="Published Books" value={(data?.publishedBooks || 0).toLocaleString()} icon={BookOpen} />
-          <StatsCard title="Draft Books" value={(data?.draftBooks || 0).toLocaleString()} icon={FileText} />
-          <StatsCard title="Followers" value="0" icon={Users} />
-          <StatsCard title="Royalty Earned" value="₹0.00" icon={PieChart} />
-          <StatsCard title="Profile Views" value="0" icon={Activity} />
-        </motion.div>
-
-        <div className="grid lg:grid-cols-3 gap-8">
-          
-          {/* Main Analytics Area */}
-          <div className="lg:col-span-2 space-y-8">
-            <div className="grid sm:grid-cols-2 gap-8">
-              <motion.div variants={fadeUp} className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                <ChartCard title="Revenue Graph" subtitle="Gross earnings over time">
-                  <div className="mt-4">
-                    <SimpleBarChart data={data?.monthlySalesChart || []} height={180} />
-                  </div>
-                </ChartCard>
-              </motion.div>
-
-              <motion.div variants={fadeUp} className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                <ChartCard title="Sales Graph" subtitle="Unit sales volume">
-                  <div className="mt-4">
-                    <SimpleBarChart data={data?.monthlySalesChart || []} height={180} />
-                  </div>
-                </ChartCard>
-              </motion.div>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative z-10">
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <Badge color="premium" className="bg-text text-white border-text">Creator Studio</Badge>
+                <span className="text-sm font-medium text-success flex items-center gap-1"><CheckCircle size={14}/> Operational</span>
+              </div>
+              <h1 className="text-4xl font-heading font-bold text-text mb-2">Welcome Back, {user?.name?.split(' ')[0]}</h1>
+              <p className="text-lg text-muted">Manage your publishing empire and track performance.</p>
             </div>
+            
+            <div className="flex flex-wrap items-center gap-4 shrink-0">
+              <div className="bg-gray-50 border border-border rounded-[24px] p-4 flex items-center gap-4">
+                <div className="w-12 h-12 bg-success/10 text-success rounded-[16px] flex items-center justify-center">
+                  <IndianRupee size={24} />
+                </div>
+                <div>
+                  <p className="text-xs text-muted font-bold uppercase tracking-wider mb-1">Monthly Revenue</p>
+                  <p className="text-xl font-bold font-heading text-text">₹{(data?.revenue || 0).toLocaleString()}</p>
+                </div>
+              </div>
+              <div className="bg-gray-50 border border-border rounded-[24px] p-4 flex items-center gap-4">
+                <div className="w-12 h-12 bg-primary/10 text-primary rounded-[16px] flex items-center justify-center">
+                  <Users size={24} />
+                </div>
+                <div>
+                  <p className="text-xs text-muted font-bold uppercase tracking-wider mb-1">Followers</p>
+                  <p className="text-xl font-bold font-heading text-text">{data?.followers || 0}</p>
+                </div>
+              </div>
+              <Link to="/upload">
+                <Button icon={UploadCloud} className="bg-text hover:bg-gray-800 text-white shadow-soft rounded-full h-14 px-6">Upload Book</Button>
+              </Link>
+            </div>
+          </div>
+        </motion.div>
+
+        <div className="grid lg:grid-cols-12 gap-8">
+          
+          {/* Main Left Area */}
+          <div className="lg:col-span-8 space-y-10">
+            
+            <motion.div variants={fadeUp} className="space-y-4">
+               <div className="flex items-center justify-between">
+                <h2 className="text-xl font-heading font-bold text-text flex items-center gap-2">
+                  <Activity className="text-primary"/> Performance Overview
+                </h2>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <StatsCard title="Total Readers" value={(data?.readers || 0).toLocaleString()} icon={Users} color="primary" />
+                <StatsCard title="Downloads" value={(data?.downloads || 0).toLocaleString()} icon={Download} color="secondary" />
+                <StatsCard title="Published" value={data?.publishedBooks || 0} icon={BookOpen} color="success" />
+                <StatsCard title="Drafts" value={data?.draftBooks || 0} icon={Edit3} color="warning" />
+              </div>
+            </motion.div>
+
+            {/* Charts Row */}
+            <motion.div variants={fadeUp} className="grid sm:grid-cols-2 gap-6">
+              <AnalyticsCard title="Gross Revenue" subtitle="Earnings over time" action={<Button variant="ghost" size="sm" icon={Download}></Button>}>
+                {data?.monthlySalesChart?.length > 0 ? (
+                  <SimpleBarChart data={data.monthlySalesChart} height={180} />
+                ) : (
+                  <EmptyState icon={IndianRupee} title="No revenue data" description="Publish a book to start earning." actionLabel="Upload Book" actionLink="/upload" className="mt-4 p-4 border-none shadow-none bg-transparent"/>
+                )}
+              </AnalyticsCard>
+              <AnalyticsCard title="Unit Sales" subtitle="Volume over time" action={<Button variant="ghost" size="sm" icon={Download}></Button>}>
+                {data?.monthlySalesChart?.length > 0 ? (
+                  <SimpleBarChart data={data.monthlySalesChart} height={180} />
+                ) : (
+                  <EmptyState icon={TrendingUp} title="No sales data" description="Publish a book to generate sales." actionLabel="Upload Book" actionLink="/upload" className="mt-4 p-4 border-none shadow-none bg-transparent"/>
+                )}
+              </AnalyticsCard>
+            </motion.div>
 
             {/* Book Performance Table */}
-            <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-gray-900">Book Performance</h2>
-                <Button variant="ghost" size="sm">Download CSV</Button>
+            <motion.div variants={fadeUp} className="bg-white rounded-[24px] border border-border overflow-hidden shadow-soft">
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                <h2 className="text-lg font-heading font-bold text-text flex items-center gap-2"><BookOpen size={18}/> Book Management</h2>
+                <Link to="/upload" className="text-sm font-semibold text-primary hover:underline">View All Books</Link>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
-                  <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-y border-gray-200">
+                  <thead className="text-xs text-muted uppercase bg-gray-50/50 border-b border-gray-100 tracking-wider">
                     <tr>
-                      <th className="px-4 py-3 font-semibold rounded-tl-xl">Title</th>
-                      <th className="px-4 py-3 font-semibold">Status</th>
-                      <th className="px-4 py-3 font-semibold">Downloads</th>
-                      <th className="px-4 py-3 font-semibold">Revenue</th>
+                      <th className="px-6 py-4 font-semibold">Title & Status</th>
+                      <th className="px-6 py-4 font-semibold">Downloads</th>
+                      <th className="px-6 py-4 font-semibold">Revenue</th>
+                      <th className="px-6 py-4 font-semibold text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-50">
                     {data?.booksList?.length > 0 ? data.booksList.map(book => (
-                      <tr key={book.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-4 font-bold text-gray-900 truncate max-w-[200px]">{book.title}</td>
-                        <td className="px-4 py-4"><Badge color={book.status === 'Published' ? 'success' : 'default'} size="xs">{book.status}</Badge></td>
-                        <td className="px-4 py-4 text-gray-600">{(book.downloads || 0).toLocaleString()}</td>
-                        <td className="px-4 py-4 font-medium text-gray-900">₹{(book.price || 0).toLocaleString()}</td>
+                      <tr key={book.id} className="hover:bg-gray-50/50 transition-colors group">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <img src={book.cover} alt="Cover" className="w-10 h-14 object-cover rounded-md" />
+                            <div>
+                              <p className="font-bold text-text mb-1">{book.title}</p>
+                              <Badge color={book.status === 'Published' ? 'success' : 'default'} size="xs">{book.status}</Badge>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-muted">{(book.downloads || 0).toLocaleString()}</td>
+                        <td className="px-6 py-4 font-semibold text-text">₹{(book.price || 0).toLocaleString()}</td>
+                        <td className="px-6 py-4 text-right">
+                          <Button variant="ghost" size="sm" icon={Edit3} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </td>
                       </tr>
                     )) : (
                       <tr>
-                        <td colSpan="4" className="px-4 py-8 text-center text-gray-500">No data available.</td>
+                        <td colSpan="4" className="p-0">
+                          <EmptyState icon={BookOpen} title="No books published yet" description="Time to start writing!" actionLabel="Publish Book" actionLink="/upload" className="border-none rounded-none"/>
+                        </td>
                       </tr>
                     )}
                   </tbody>
                 </table>
               </div>
             </motion.div>
-            
-            <div className="grid sm:grid-cols-2 gap-8">
-              {/* Traffic Analytics */}
-              <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><Activity size={18}/> Traffic Analytics</h3>
-                <p className="text-sm text-gray-500">No traffic data available yet.</p>
-              </motion.div>
-              {/* Country-wise Readers */}
-              <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><Globe size={18}/> Country-wise Readers</h3>
-                <p className="text-sm text-gray-500">Insufficient geographic data.</p>
-              </motion.div>
-            </div>
+
           </div>
 
-          {/* Right Sidebar - Social & Engagement */}
-          <div className="space-y-8">
+          {/* Right Sidebar Area */}
+          <div className="lg:col-span-4 space-y-8">
             
-            <motion.div variants={fadeUp} className="bg-gray-900 rounded-2xl p-6 text-white shadow-lg">
-              <h3 className="font-bold text-white mb-2">Top Selling Book</h3>
-              {data?.bestSellingBook ? (
-                <div className="flex items-center gap-4 mt-4">
-                  <div className="w-16 h-24 bg-gray-800 rounded flex-shrink-0" />
-                  <div>
-                    <p className="font-bold">{data.bestSellingBook.title}</p>
-                    <p className="text-sm text-gray-400 mt-1">Leading sales this month</p>
+            {/* 3. AI AUTHOR STUDIO */}
+            <motion.div variants={fadeUp} className="bg-gradient-card rounded-[24px] border border-border p-6 shadow-soft relative overflow-hidden group">
+               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-50 pointer-events-none" />
+               <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                      <Sparkles size={16} />
+                    </div>
+                    <h3 className="font-bold font-heading text-text">AI Author Studio</h3>
                   </div>
-                </div>
-              ) : (
-                <p className="text-sm text-gray-400 mt-2">Publish a book to see rankings.</p>
-              )}
+                  <p className="text-sm text-muted mb-5">Supercharge your publishing workflow.</p>
+                  
+                  <div className="space-y-2">
+                    <button className="w-full flex items-center justify-between p-3 rounded-xl border border-border bg-white hover:border-primary hover:text-primary transition-colors text-sm font-medium text-text text-left shadow-sm">
+                      <span className="flex items-center gap-2"><PenTool size={16}/> Improve Description</span>
+                      <ChevronRight size={16} className="text-muted"/>
+                    </button>
+                    <button className="w-full flex items-center justify-between p-3 rounded-xl border border-border bg-white hover:border-primary hover:text-primary transition-colors text-sm font-medium text-text text-left shadow-sm">
+                      <span className="flex items-center gap-2"><ImageIcon size={16}/> Generate Cover Prompt</span>
+                      <ChevronRight size={16} className="text-muted"/>
+                    </button>
+                    <button className="w-full flex items-center justify-between p-3 rounded-xl border border-border bg-white hover:border-primary hover:text-primary transition-colors text-sm font-medium text-text text-left shadow-sm">
+                      <span className="flex items-center gap-2"><FileText size={16}/> Grammar Check</span>
+                      <ChevronRight size={16} className="text-muted"/>
+                    </button>
+                    <button className="w-full flex items-center justify-between p-3 rounded-xl border border-border bg-white hover:border-primary hover:text-primary transition-colors text-sm font-medium text-text text-left shadow-sm">
+                      <span className="flex items-center gap-2"><Search size={16}/> SEO & Marketing Caption</span>
+                      <ChevronRight size={16} className="text-muted"/>
+                    </button>
+                  </div>
+               </div>
             </motion.div>
 
-            <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-gray-900 flex items-center gap-2"><MessageSquare size={18}/> Reader Reviews</h3>
-                <span className="text-xs font-semibold text-primary cursor-pointer hover:underline">Respond</span>
+            {/* 5. LATEST REVIEWS */}
+            <motion.div variants={fadeUp} className="bg-white rounded-[24px] border border-transparent hover:border-primary/10 p-6 shadow-soft transition-colors">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="font-bold font-heading text-text flex items-center gap-2"><MessageSquare size={18}/> Latest Reviews</h3>
+                <span className="text-xs font-semibold text-primary cursor-pointer hover:underline">View All</span>
               </div>
-              <div className="space-y-4">
-                {data?.recentReviews?.length > 0 ? (
-                  data.recentReviews.map((r, i) => (
-                    <div key={i} className="text-sm border-b border-gray-100 pb-3 last:border-0 last:pb-0">
-                      <div className="flex items-center gap-1 mb-1">
-                        <Star size={12} className="text-amber-400 fill-amber-400" />
-                        <span className="font-bold">{r.rating}</span>
-                      </div>
-                      <p className="text-gray-600 line-clamp-2">"{r.comment}"</p>
-                      <p className="text-xs text-gray-400 mt-1">- {r.reviewer}</p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-gray-500">No reviews to moderate.</p>
-                )}
-              </div>
-            </motion.div>
-            
-            <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-              <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><IndianRupee size={18}/> Recent Purchases</h3>
-              <div className="space-y-4">
-                {data?.recentPurchases?.length > 0 ? (
-                  data.recentPurchases.map((p, i) => (
-                    <div key={i} className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600 truncate mr-2">{p.bookTitle}</span>
-                      <span className="font-bold text-success">+₹{p.amount}</span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-gray-500">No recent transactions.</p>
-                )}
-              </div>
+              <TimelineCard 
+                activities={reviewTimeline}
+                emptyState={<EmptyState icon={MessageSquare} title="No reviews yet" description="Publish a book and wait for readers." className="p-4 border-none bg-transparent"/>}
+              />
             </motion.div>
 
           </div>
         </div>
-
       </motion.div>
     </DashboardLayout>
   );

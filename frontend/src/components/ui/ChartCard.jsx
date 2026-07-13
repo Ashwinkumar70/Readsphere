@@ -3,13 +3,13 @@ import { motion } from 'framer-motion';
 export default function ChartCard({ title, subtitle, children, action, className = '' }) {
   return (
     <motion.div
-      whileHover={{ y: -1 }}
-      className={`bg-white rounded-2xl border border-border p-5 shadow-soft ${className}`}
+      whileHover={{ y: -2, boxShadow: '0 12px 40px -4px rgba(0, 0, 0, 0.08)' }}
+      className={`bg-white rounded-[24px] border border-transparent hover:border-primary/10 p-6 shadow-soft transition-colors ${className}`}
     >
-      <div className="flex items-start justify-between mb-5">
+      <div className="flex items-start justify-between mb-6">
         <div>
-          <h3 className="text-base font-bold text-text">{title}</h3>
-          {subtitle && <p className="text-sm text-muted mt-0.5">{subtitle}</p>}
+          <h3 className="text-lg font-heading font-bold text-text">{title}</h3>
+          {subtitle && <p className="text-sm text-muted mt-1">{subtitle}</p>}
         </div>
         {action && <div>{action}</div>}
       </div>
@@ -29,7 +29,7 @@ export function SimpleBarChart({ data, height = 120 }) {
             initial={{ height: 0 }}
             animate={{ height: `${(item.value / max) * (height - 24)}px` }}
             transition={{ delay: i * 0.05, duration: 0.5, ease: 'easeOut' }}
-            className="w-full rounded-t-lg bg-gradient-to-t from-primary-500 to-primary-300 min-h-[4px]"
+            className="w-full rounded-t-xl bg-gradient-to-t from-primary/60 to-primary min-h-[4px] hover:from-primary/80 hover:to-primary-dark transition-colors"
             title={`${item.label}: ${item.value}`}
           />
           <span className="text-xs text-muted">{item.label}</span>

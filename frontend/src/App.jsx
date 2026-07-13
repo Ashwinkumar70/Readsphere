@@ -15,6 +15,8 @@ import ProtectedRoute from './components/auth/ProtectedRoute.jsx';
 import Landing from './pages/Landing.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
+import ForgotPassword from './pages/ForgotPassword.jsx';
+import ResetPassword from './pages/ResetPassword.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Marketplace from './pages/Marketplace.jsx';
 import BookDetails from './pages/BookDetails.jsx';
@@ -35,13 +37,15 @@ import AdminDashboard from './pages/AdminDashboard.jsx';
 import Help from './pages/Help.jsx';
 import Contact from './pages/Contact.jsx';
 import AuthorProfile from './pages/AuthorProfile.jsx';
+import TermsOfService from './pages/TermsOfService.jsx';
+import PrivacyPolicy from './pages/PrivacyPolicy.jsx';
 import NotFound from './pages/NotFound.jsx';
 
 // Pages that use the sidebar layout
 const sidebarRoutes = ['/reader', '/reader-author', '/library', '/collections', '/clubs', '/bookmarks', '/notes', '/profile', '/author', '/upload', '/notifications', '/settings'];
 
 // Pages that are standalone (no navbar/footer)
-const standaloneRoutes = ['/login', '/register', '/reader/'];
+const standaloneRoutes = ['/login', '/register', '/reader/', '/forgot-password', '/reset-password'];
 
 function AppLayout() {
   const location = useLocation();
@@ -56,6 +60,8 @@ function AppLayout() {
         <Routes location={location} key={location.pathname}>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/reader/:id" element={<Reader />} />
         </Routes>
       </AnimatePresence>
@@ -124,6 +130,8 @@ function AppLayout() {
             <Route path="/help" element={<Help />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/author/:id" element={<AuthorProfile />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AnimatePresence>

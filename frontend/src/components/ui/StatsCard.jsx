@@ -16,9 +16,9 @@ export default function StatsCard({ title, value, change, changeLabel, icon: Ico
 
   return (
     <motion.div
-      whileHover={{ y: -2, boxShadow: '0 8px 40px 0 rgba(109, 93, 252, 0.12)' }}
+      whileHover={{ y: -4, boxShadow: '0 12px 40px -4px rgba(109, 93, 252, 0.15)' }}
       className={clsx(
-        'bg-white rounded-2xl border border-border p-5 shadow-soft',
+        'bg-white rounded-[24px] border border-transparent hover:border-primary/10 p-6 shadow-soft transition-colors',
         className
       )}
     >

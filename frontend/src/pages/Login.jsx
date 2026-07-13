@@ -154,17 +154,73 @@ export default function Login() {
 
       {/* ── Main Layout ──────────────────────────────── */}
       <div className="flex-1 flex flex-col lg:flex-row relative z-10 w-full h-full">
-        {/* Left Side - Large Branding */}
-        <div className="hidden lg:flex flex-1 flex-col items-center justify-center relative">
+        {/* Left Side - Animated Branding */}
+        <div className="hidden lg:flex flex-1 flex-col items-center justify-center relative overflow-hidden">
+          
+          {/* Animated Rings */}
+          <motion.div 
+            animate={{ rotate: 360 }} 
+            transition={{ duration: 50, repeat: Infinity, ease: "linear" }}
+            className="absolute w-[600px] h-[600px] border border-dashed rounded-full" style={{ borderColor: 'rgba(0,71,65,0.15)' }} 
+          />
+          <motion.div 
+            animate={{ rotate: -360 }} 
+            transition={{ duration: 70, repeat: Infinity, ease: "linear" }}
+            className="absolute w-[450px] h-[450px] border rounded-full" style={{ borderColor: 'rgba(0,71,65,0.08)' }} 
+          />
+
+          {/* Floating abstract book cards */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ y: [0, -20, 0], rotate: [-12, -8, -12] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute top-[20%] left-[20%] w-24 h-32 rounded-2xl shadow-xl backdrop-blur-md flex flex-col p-3 gap-2"
+            style={{ background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.8)' }}
+          >
+            <div className="w-full h-3 rounded bg-primary/20" />
+            <div className="w-3/4 h-2 rounded bg-primary/10" />
+            <div className="w-1/2 h-2 rounded bg-primary/10" />
+          </motion.div>
+
+          <motion.div
+            animate={{ y: [0, 25, 0], rotate: [15, 20, 15] }}
+            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+            className="absolute bottom-[25%] right-[20%] w-28 h-40 rounded-2xl shadow-2xl backdrop-blur-md flex flex-col p-4 gap-2"
+            style={{ background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.9)' }}
+          >
+            <div className="w-full h-1/2 rounded-lg bg-gradient-to-br from-primary/30 to-primary/5" />
+            <div className="w-full h-3 rounded bg-primary/20 mt-2" />
+            <div className="w-2/3 h-2 rounded bg-primary/10" />
+          </motion.div>
+
+          <motion.div
+            animate={{ y: [0, -15, 0], scale: [1, 1.05, 1] }}
+            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+            className="absolute top-[35%] right-[25%] w-12 h-12 rounded-full backdrop-blur-sm flex items-center justify-center shadow-lg"
+            style={{ background: 'rgba(200,155,60,0.15)', border: '1px solid rgba(200,155,60,0.3)' }}
+          >
+            <Sparkles size={20} style={{ color: GOLD }} />
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
-            className="flex flex-col items-center"
+            className="flex flex-col items-center relative z-10"
           >
-            <div className="w-64 h-64 rounded-[3rem] flex items-center justify-center overflow-hidden shadow-2xl mb-8 border-[8px] border-white/50" style={{ background: 'white' }}>
-              <img src="/logo.png" alt="ReadSphere Logo" className="w-full h-full object-cover" />
-            </div>
+            <motion.div 
+              animate={{ y: [0, -8, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              className="w-64 h-64 rounded-[3rem] flex items-center justify-center overflow-hidden shadow-2xl mb-8 relative" 
+              style={{ background: 'white', border: '8px solid rgba(255,255,255,0.7)' }}
+            >
+              <motion.div 
+                animate={{ opacity: [0, 0.4, 0] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent pointer-events-none"
+              />
+              <img src="/logo.png" alt="ReadSphere Logo" className="w-full h-full object-cover relative z-10" />
+            </motion.div>
+            
             <h2 className="text-5xl font-black mb-3 text-center" style={{ fontFamily: 'Outfit, sans-serif', color: PRIMARY }}>
               ReadSphere
             </h2>
@@ -266,7 +322,7 @@ export default function Login() {
                   </motion.div>
                   <span className="text-[12px]" style={{ color: 'rgba(0,71,65,0.6)' }}>Remember Me</span>
                 </label>
-                <Link to="/login" className="text-[12px] font-semibold hover:opacity-75 transition-opacity" style={{ color: GOLD }}>
+                <Link to="/forgot-password" className="text-[12px] font-semibold hover:opacity-75 transition-opacity" style={{ color: GOLD }}>
                   Forgot Password?
                 </Link>
               </div>
