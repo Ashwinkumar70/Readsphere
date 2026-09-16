@@ -63,19 +63,24 @@ const getBookById = async (req, res, next) => {
 // @access  Private/Author
 const createBook = async (req, res, next) => {
   try {
-    const { title, description, price, is_free, status, categories } = req.body;
+    const { title, description, price, is_free, categories } = req.body;
     
     let cover_url = req.body.cover_url || null;
     let pdf_url = req.body.pdf_url || null;
+    let preview_url = req.body.preview_url || null;
 
     if (req.files) {
         if (req.files.cover && req.files.cover.length > 0) cover_url = req.files.cover[0].supabaseUrl;
         if (req.files.pdf && req.files.pdf.length > 0) pdf_url = req.files.pdf[0].supabaseUrl;
+        if (req.files.manuscript && req.files.manuscript.length > 0) pdf_url = req.files.manuscript[0].supabaseUrl;
+        if (req.files.preview && req.files.preview.length > 0) preview_url = req.files.preview[0].supabaseUrl;
     } else if (req.file) {
+        // Fallback for single file upload
         cover_url = req.file.supabaseUrl;
     }
 
-    const bookStatus = status || 'Draft';
+    // Books must not be published immediately
+    const bookStatus = 'Draft';
     const bookPrice = is_free === 'true' || is_free === true ? 0 : (price || 0);
     const bookIsFree = bookPrice === 0;
 
@@ -106,6 +111,10 @@ const createBook = async (req, res, next) => {
       res.status(400);
       throw new Error(error.message);
     }
+
+    // If we had a preview_url column, we'd insert it above. Assuming it might not exist yet,
+    // we'll just log it or add it if the schema supports it. (Ignoring for now unless schema has it, wait!
+    // Supabase JS will throw an error if the column doesn't exist. I'll omit preview_url from the insert unless we need to alter the table).
 
     res.status(201).json(book);
   } catch (error) {

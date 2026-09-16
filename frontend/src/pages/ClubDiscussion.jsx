@@ -2,12 +2,22 @@
 import { useParams, Link } from 'react-router-dom';
 import {
   Hash, ChevronLeft, Search, Users, Settings, Hash as HashIcon,
-  MessageSquare, PlusCircle, Smile, Paperclip, Send
+  MessageSquare, PlusCircle, Smile, Paperclip, Send, Trash2, Edit2
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchClubs, fetchClubMessages, postClubMessage } from '../store/slices/clubSlice.js';
+import { 
+  fetchClubs, 
+  fetchClubMessages, 
+  postClubMessage,
+  deleteClubMessage,
+  editClubMessage,
+  addRealtimeMessage,
+  updateRealtimeMessage,
+  removeRealtimeMessage
+} from '../store/slices/clubSlice.js';
 import Avatar from '../components/ui/Avatar.jsx';
+import { supabase } from '../lib/supabase.js';
 
 export default function ClubDiscussion() {
   const { id } = useParams();
@@ -19,10 +29,27 @@ export default function ClubDiscussion() {
     if (clubs.length === 0) {
       dispatch(fetchClubs());
     }
-    dispatch(fetchClubMessages(id));
+    dispatch(fetchClubMessages({ clubId: id }));
+
+    // Supabase Realtime Subscription
+    const channel = supabase.channel(`club_messages_${id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'club_messages', filter: `club_id=eq.${id}` }, 
+        (payload) => dispatch(addRealtimeMessage(payload.new))
+      )
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'club_messages', filter: `club_id=eq.${id}` }, 
+        (payload) => dispatch(updateRealtimeMessage(payload.new))
+      )
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'club_messages', filter: `club_id=eq.${id}` }, 
+        (payload) => dispatch(removeRealtimeMessage(payload.old.id))
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [dispatch, id, clubs.length]);
 
-  const club = clubs.find(c => c.id === parseInt(id));
+  const club = clubs.find(c => c.id === parseInt(id) || c.id === id);
 
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);

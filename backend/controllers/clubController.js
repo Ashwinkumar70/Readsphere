@@ -1,21 +1,13 @@
 import { supabase } from '../config/supabase.js';
 
+import { clubService } from '../services/community/clubService.js';
+
 // @desc    Fetch all clubs
 // @route   GET /api/clubs
 // @access  Public
 const getClubs = async (req, res, next) => {
   try {
-    const { data: clubs, error } = await supabase
-      .from('clubs')
-      .select('*, owner:users!owner_id(name, avatar_url)')
-      .eq('is_public', true)
-      .eq('is_active', true);
-
-    if (error) {
-      res.status(400);
-      throw new Error(error.message);
-    }
-
+    const clubs = await clubService.getClubs();
     res.json(clubs);
   } catch (error) {
     next(error);
@@ -27,44 +19,20 @@ const getClubs = async (req, res, next) => {
 // @access  Private
 const createClub = async (req, res, next) => {
   try {
-    const { name, description, is_public } = req.body;
-    let image_url = req.body.image_url || null;
+    const { name, description, rules, is_private } = req.body;
+    let banner_url = req.body.banner_url || null;
 
     if (req.file) {
-      image_url = req.file.supabaseUrl;
+      banner_url = req.file.supabaseUrl;
     }
 
-    const isPublic = is_public !== undefined ? (is_public === 'true' || is_public === true) : true;
-
-    const { data: club, error } = await supabase
-      .from('clubs')
-      .insert([
-        {
-          owner_id: req.user.id,
-          name,
-          description,
-          image_url,
-          is_public: isPublic
-        }
-      ])
-      .select()
-      .single();
-
-    if (error) {
-      res.status(400);
-      throw new Error(error.message);
-    }
-
-    // Automatically add owner as a member
-    await supabase
-      .from('club_members')
-      .insert([
-        {
-          club_id: club.id,
-          user_id: req.user.id,
-          role: 'Owner'
-        }
-      ]);
+    const club = await clubService.createClub(req.user.id, {
+      name,
+      description,
+      banner_url,
+      rules,
+      is_private: is_private === 'true' || is_private === true
+    });
 
     res.status(201).json(club);
   } catch (error) {
@@ -78,51 +46,11 @@ const createClub = async (req, res, next) => {
 const joinClub = async (req, res, next) => {
   try {
     const clubId = req.params.id;
-    const { invite_token } = req.query;
-
-    const { data: club, error: clubError } = await supabase
-      .from('clubs')
-      .select('is_public')
-      .eq('id', clubId)
-      .single();
-
-    if (clubError || !club) {
-      res.status(404);
-      throw new Error('Club not found');
-    }
-
-    // For private clubs, normally we'd verify the invite link/token here.
-    if (!club.is_public && !invite_token) {
-      res.status(403);
-      throw new Error('This club is private and requires an invite link');
-    }
-    
-    const { data: existingMember } = await supabase
-      .from('club_members')
-      .select('user_id')
-      .eq('club_id', clubId)
-      .eq('user_id', req.user.id)
-      .single();
-
-    if (existingMember) {
-      res.status(400);
-      throw new Error('You are already a member of this club');
-    }
-
-    const { data: member, error } = await supabase
-      .from('club_members')
-      .insert([{ club_id: clubId, user_id: req.user.id, role: 'Member' }])
-      .select()
-      .single();
-
-    if (error) {
-      res.status(400);
-      throw new Error(error.message);
-    }
-
+    const member = await clubService.joinClub(clubId, req.user.id);
     res.status(200).json({ message: 'Successfully joined the club', member });
   } catch (error) {
-    next(error);
+    res.status(400);
+    next(new Error(error.message || 'Could not join club. You might already be a member.'));
   }
 };
 
@@ -132,32 +60,32 @@ const joinClub = async (req, res, next) => {
 const leaveClub = async (req, res, next) => {
   try {
     const clubId = req.params.id;
-
-    // Check if the user is the owner (owners usually cannot leave without transferring ownership)
-    const { data: memberCheck } = await supabase
-      .from('club_members')
-      .select('role')
-      .eq('club_id', clubId)
-      .eq('user_id', req.user.id)
-      .single();
-
-    if (memberCheck?.role === 'Owner') {
+    // Check if owner
+    const members = await clubService.getMembers(clubId);
+    const me = members.find(m => m.user_id === req.user.id);
+    
+    if (me?.role === 'owner') {
       res.status(400);
-      throw new Error('Owner cannot leave the club. Transfer ownership or delete the club.');
+      return next(new Error('Owner cannot leave the club. Transfer ownership or delete.'));
     }
 
-    const { error } = await supabase
-      .from('club_members')
-      .delete()
-      .eq('club_id', clubId)
-      .eq('user_id', req.user.id);
-
-    if (error) {
-      res.status(400);
-      throw new Error(error.message);
-    }
-
+    await clubService.leaveClub(clubId, req.user.id);
     res.status(200).json({ message: 'Successfully left the club' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get club discussions
+// @route   GET /api/clubs/:id/messages
+// @access  Private
+const getClubMessages = async (req, res, next) => {
+  try {
+    const clubId = req.params.id;
+    const { page = 1, limit = 50 } = req.query;
+    
+    const messages = await clubService.getMessages(clubId, parseInt(page), parseInt(limit));
+    res.json(messages);
   } catch (error) {
     next(error);
   }
@@ -170,77 +98,42 @@ const postClubMessage = async (req, res, next) => {
   try {
     const clubId = req.params.id;
     const { content } = req.body;
-
-    const { data: isMember } = await supabase
-      .from('club_members')
-      .select('*')
-      .eq('club_id', clubId)
-      .eq('user_id', req.user.id)
-      .single();
-
-    if (!isMember) {
-      res.status(403);
-      throw new Error('Must be a member to post in discussions');
-    }
-
-    const { data: message, error } = await supabase
-      .from('messages')
-      .insert([{ 
-        sender_id: req.user.id, 
-        club_id: clubId, 
-        content 
-      }])
-      .select()
-      .single();
-
-    if (error) {
-      res.status(400);
-      throw new Error(error.message);
-    }
-
+    
+    const message = await clubService.postMessage(clubId, req.user.id, content);
     res.status(201).json(message);
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Get club discussions
-// @route   GET /api/clubs/:id/messages
+// @desc    Edit a message
+// @route   PUT /api/clubs/messages/:msgId
 // @access  Private
-const getClubMessages = async (req, res, next) => {
+const editClubMessage = async (req, res, next) => {
   try {
-    const clubId = req.params.id;
-
-    const { data: isMember } = await supabase
-      .from('club_members')
-      .select('*')
-      .eq('club_id', clubId)
-      .eq('user_id', req.user.id)
-      .single();
-
-    if (!isMember) {
-      res.status(403);
-      throw new Error('Must be a member to view discussions');
-    }
-
-    const { data: messages, error } = await supabase
-      .from('messages')
-      .select('*, sender:users!sender_id(name, avatar_url)')
-      .eq('club_id', clubId)
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      res.status(400);
-      throw new Error(error.message);
-    }
-
-    res.json(messages);
+    const { msgId } = req.params;
+    const { content } = req.body;
+    const message = await clubService.editMessage(msgId, req.user.id, content);
+    res.json(message);
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Update member role (Moderators logic)
+// @desc    Delete a message
+// @route   DELETE /api/clubs/messages/:msgId
+// @access  Private
+const deleteClubMessage = async (req, res, next) => {
+  try {
+    const { msgId } = req.params;
+    await clubService.deleteMessage(msgId, req.user.id);
+    res.json({ message: 'Message deleted' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Update member role
 // @route   PUT /api/clubs/:id/members/:userId/role
 // @access  Private (Owner/Moderator only)
 const updateMemberRole = async (req, res, next) => {
@@ -248,34 +141,34 @@ const updateMemberRole = async (req, res, next) => {
     const { id: clubId, userId: targetUserId } = req.params;
     const { role } = req.body;
 
-    // Check requester role
-    const { data: requester } = await supabase
-      .from('club_members')
-      .select('role')
-      .eq('club_id', clubId)
-      .eq('user_id', req.user.id)
-      .single();
+    const members = await clubService.getMembers(clubId);
+    const requester = members.find(m => m.user_id === req.user.id);
 
-    if (!requester || (requester.role !== 'Owner' && requester.role !== 'Moderator')) {
+    if (!requester || (requester.role !== 'owner' && requester.role !== 'moderator')) {
       res.status(403);
-      throw new Error('Not authorized to update roles');
+      return next(new Error('Not authorized to update roles'));
     }
 
     const { error } = await supabase
       .from('club_members')
       .update({ role })
-      .eq('club_id', clubId)
-      .eq('user_id', targetUserId);
+      .match({ club_id: clubId, user_id: targetUserId });
 
-    if (error) {
-      res.status(400);
-      throw new Error(error.message);
-    }
-
+    if (error) throw error;
     res.json({ message: 'Role updated successfully' });
   } catch (error) {
     next(error);
   }
 };
 
-export { getClubs, createClub, joinClub, leaveClub, postClubMessage, getClubMessages, updateMemberRole };
+export { 
+  getClubs, 
+  createClub, 
+  joinClub, 
+  leaveClub, 
+  getClubMessages,
+  postClubMessage,
+  editClubMessage,
+  deleteClubMessage,
+  updateMemberRole
+};

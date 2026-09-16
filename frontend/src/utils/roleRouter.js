@@ -1,4 +1,7 @@
 export const getDashboardRoute = (role) => {
+  if (role === 'Admin') {
+    return '/admin';
+  }
   if (role === 'Author') {
     return '/author';
   }

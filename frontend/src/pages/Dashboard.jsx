@@ -13,15 +13,22 @@ import TimelineCard from '../components/ui/TimelineCard.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import Button from '../components/ui/Button.jsx';
 import Badge from '../components/ui/Badge.jsx';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { useEffect } from 'react';
 import DashboardLayout from '../components/layout/DashboardLayout.jsx';
+import { fetchReaderDashboard } from '../store/slices/readerSlice.js';
 
 const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } } };
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.08 } } };
 
 export default function Dashboard() {
+  const dispatch = useDispatch();
   const user = useSelector(state => state.auth.user);
-  const { data } = useSelector(state => state.dashboard);
+  const data = useSelector(state => state.reader.dashboard);
+
+  useEffect(() => {
+    dispatch(fetchReaderDashboard());
+  }, [dispatch]);
 
   const currentBook = data?.currentlyReading?.[0];
 

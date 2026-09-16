@@ -10,6 +10,18 @@ import { useSelector } from 'react-redux';
 import Avatar from '../ui/Avatar.jsx';
 import Badge from '../ui/Badge.jsx';
 
+const categoryLinks = [
+  { group: 'Categories' },
+  { icon: BookOpen, label: 'Fiction', to: '/marketplace?category=Fiction' },
+  { icon: BookOpen, label: 'Non-Fiction', to: '/marketplace?category=Non-Fiction' },
+  { icon: BookOpen, label: 'Business', to: '/marketplace?category=Business' },
+  { icon: BookOpen, label: 'Technology', to: '/marketplace?category=Technology' },
+  { icon: BookOpen, label: 'Science', to: '/marketplace?category=Science' },
+  { icon: BookOpen, label: 'Self Help', to: '/marketplace?category=Self Help' },
+  { icon: BookOpen, label: 'Romance', to: '/marketplace?category=Romance' },
+  { icon: BookOpen, label: 'History', to: '/marketplace?category=History' },
+];
+
 const readerLinks = [
   { group: 'Workspace' },
   { icon: Home, label: 'Dashboard', to: '/reader' },
@@ -99,6 +111,9 @@ export default function Sidebar({ collapsed: externalCollapsed, onCollapse }) {
   let currentLinks = readerLinks;
   if (user?.role === 'Author') currentLinks = authorLinks;
   if (user?.role === 'ReaderAuthor') currentLinks = readerAuthorLinks;
+
+  // Append category links to all roles
+  currentLinks = [...currentLinks, ...categoryLinks];
 
   return (
     <aside

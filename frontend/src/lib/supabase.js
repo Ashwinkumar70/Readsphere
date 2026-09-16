@@ -8,3 +8,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Valid for local development and deployments under Vite's base path.
+export const getOAuthRedirectUrl = () => {
+  const basePath = (import.meta.env.BASE_URL || '/').replace(/\/?$/, '/');
+  return new URL(`${basePath}auth/callback`, window.location.origin).toString();
+};

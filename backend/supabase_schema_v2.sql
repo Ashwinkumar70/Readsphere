@@ -33,6 +33,10 @@ CREATE TABLE users (
     role          TEXT NOT NULL DEFAULT 'Reader'
                   CHECK (role IN ('Reader', 'Author', 'ReaderAuthor', 'Moderator', 'Admin')),
     is_active     BOOLEAN NOT NULL DEFAULT true,
+    is_online     BOOLEAN DEFAULT false,
+    last_login    TIMESTAMPTZ,
+    last_active_at TIMESTAMPTZ,
+    last_logout   TIMESTAMPTZ,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at    TIMESTAMPTZ,

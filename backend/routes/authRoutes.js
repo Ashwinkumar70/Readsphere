@@ -1,4 +1,4 @@
-import { registerUser, loginUser, getUserProfile, updateProfile, logoutUser, forgotPassword, resetPassword, validateRegister, validateLogin, getDashboardData } from '../controllers/authController.js';
+import { registerUser, loginUser, getUserProfile, updateProfile, logoutUser, forgotPassword, resetPassword, validateRegister, validateLogin, getDashboardData, updateActivity } from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { upload, uploadToSupabase } from '../middleware/uploadMiddleware.js';
 import express from 'express';
@@ -16,5 +16,6 @@ router.route('/profile')
   .put(protect, upload.single('avatar'), uploadToSupabase('avatars'), updateProfile);
 
 router.get('/dashboard', protect, getDashboardData);
+router.post('/active', protect, updateActivity);
 
 export default router;

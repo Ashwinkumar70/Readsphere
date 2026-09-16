@@ -112,10 +112,10 @@ const loginUser = async (req, res, next) => {
       throw new Error('Your account has been deactivated. Contact support.');
     }
 
-    // Update last login timestamp
+    // Update last login timestamp and set online status
     await supabase
       .from('users')
-      .update({ last_login: new Date().toISOString() })
+      .update({ last_login: new Date().toISOString(), is_online: true })
       .eq('id', userProfile.id);
 
     res.json({
@@ -188,6 +188,13 @@ const logoutUser = async (req, res, next) => {
   try {
     // Invalidate the session server-side using admin API
     await supabase.auth.admin.signOut(req.user.id);
+    
+    // Update last_logout and is_online status
+    await supabase
+      .from('users')
+      .update({ last_logout: new Date().toISOString(), is_online: false })
+      .eq('id', req.user.id);
+
     res.json({ message: 'Logged out successfully' });
   } catch (error) {
     // Even if signout fails, tell the client to clear their token
@@ -280,4 +287,22 @@ const getDashboardData = async (req, res, next) => {
   }
 };
 
-export { registerUser, loginUser, getUserProfile, updateProfile, logoutUser, forgotPassword, resetPassword, getDashboardData };
+// @desc    Update last active timestamp
+// @route   POST /api/auth/active
+const updateActivity = async (req, res, next) => {
+  try {
+    const { error } = await supabase
+      .from('users')
+      .update({ last_active_at: new Date().toISOString() })
+      .eq('id', req.user.id);
+
+    if (error) {
+      console.warn("Could not update last_active_at:", error.message);
+    }
+    res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export { registerUser, loginUser, getUserProfile, updateProfile, logoutUser, forgotPassword, resetPassword, getDashboardData, updateActivity };

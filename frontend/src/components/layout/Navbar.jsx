@@ -8,6 +8,8 @@ import {
 import Avatar from '../ui/Avatar.jsx';
 import Badge from '../ui/Badge.jsx';
 import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { logoutUser } from '../../store/slices/authSlice.js';
 
 import { getDashboardRoute } from '../../utils/roleRouter.js';
@@ -34,6 +36,7 @@ export default function Navbar() {
   const { user, isAuthenticated } = useSelector(state => state.auth);
   const { notifications, unreadCount } = useSelector(state => state.userData);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 8);
@@ -197,7 +200,12 @@ export default function Navbar() {
                         </Link>
                       ))}
                       <div className="border-t border-border">
-                        <button onClick={() => { dispatch(logoutUser()); setProfileOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 text-muted hover:text-red-500 transition-colors">
+                        <button onClick={async () => { 
+                          setProfileOpen(false);
+                          toast.success('You have been logged out successfully.');
+                          await dispatch(logoutUser()); 
+                          navigate('/');
+                        }} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 text-muted hover:text-red-500 transition-colors">
                           <LogOut size={15} />
                           <span className="text-sm font-medium">Sign Out</span>
                         </button>

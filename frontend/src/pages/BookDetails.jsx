@@ -7,6 +7,7 @@ import {
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchBookById, clearCurrentBook } from '../store/slices/bookSlice.js';
+import { addToCart } from '../store/slices/cartSlice.js';
 import api from '../lib/apiService.js';
 import Button from '../components/ui/Button.jsx';
 import Badge from '../components/ui/Badge.jsx';
@@ -21,9 +22,9 @@ export default function BookDetails() {
   const { id } = useParams();
   const dispatch = useDispatch();
   const { currentBook: book, loading, error } = useSelector((state) => state.books);
+  const { cart } = useSelector((state) => state.cart);
   
   const [liked, setLiked] = useState(false);
-  const [inCart, setInCart] = useState(false);
   const [similarBooks, setSimilarBooks] = useState([]);
 
   useEffect(() => {
@@ -57,9 +58,16 @@ export default function BookDetails() {
   const bookReviews = book.reviews || [];
   const bookTags = Array.isArray(book.tags) ? book.tags : (book.tags ? JSON.parse(book.tags) : []);
 
-  const handleCart = () => {
-    setInCart(true);
-    toast.success('Added to cart!');
+  const inCart = cart?.order_items?.some(item => item.book_id === book.id);
+
+  const handleCart = async () => {
+    if (inCart) return;
+    try {
+      await dispatch(addToCart({ bookId: book.id, quantity: 1 })).unwrap();
+      toast.success('Added to cart!');
+    } catch (err) {
+      toast.error('Failed to add to cart');
+    }
   };
 
   return (

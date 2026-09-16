@@ -1,228 +1,81 @@
-import { supabase } from '../config/supabase.js';
+import { marketplaceService } from '../services/marketplaceService.js';
 
-// --- WISHLIST (Using bookmarks table) ---
-
-// @desc    Get user wishlist
-// @route   GET /api/marketplace/wishlist
+// @desc    Get user's shopping cart
+// @route   GET /api/v1/marketplace/cart
 // @access  Private
-const getWishlist = async (req, res, next) => {
+const getCart = async (req, res, next) => {
   try {
-    const { data: wishlist, error } = await supabase
-      .from('bookmarks')
-      .select('id, book:books(*, author:authors(bio, users(name, avatar_url)))')
-      .eq('user_id', req.user.id);
-
-    if (error) {
-      res.status(400);
-      throw new Error(error.message);
-    }
-
-    res.json(wishlist);
+    const cart = await marketplaceService.getCart(req.user.id);
+    res.json(cart);
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Add book to wishlist
-// @route   POST /api/marketplace/wishlist
+// @desc    Add item to cart
+// @route   POST /api/v1/marketplace/cart
 // @access  Private
-const addToWishlist = async (req, res, next) => {
+const addToCart = async (req, res, next) => {
   try {
-    const { bookId } = req.body;
-
-    const { data: existing } = await supabase
-      .from('bookmarks')
-      .select('id')
-      .eq('user_id', req.user.id)
-      .eq('book_id', bookId)
-      .single();
-
-    if (existing) {
+    const { bookId, quantity } = req.body;
+    if (!bookId) {
       res.status(400);
-      throw new Error('Book already in wishlist');
+      throw new Error('Book ID is required');
     }
-
-    const { data, error } = await supabase
-      .from('bookmarks')
-      .insert([{ user_id: req.user.id, book_id: bookId }])
-      .select()
-      .single();
-
-    if (error) {
-      res.status(400);
-      throw new Error(error.message);
-    }
-
-    res.status(201).json({ message: 'Added to wishlist', data });
+    const cart = await marketplaceService.addToCart(req.user.id, bookId, quantity);
+    res.status(201).json(cart);
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Remove from wishlist
-// @route   DELETE /api/marketplace/wishlist/:id
+// @desc    Process checkout
+// @route   POST /api/v1/marketplace/checkout
 // @access  Private
-const removeFromWishlist = async (req, res, next) => {
+const checkout = async (req, res, next) => {
   try {
-    const { error } = await supabase
-      .from('bookmarks')
-      .delete()
-      .eq('id', req.params.id)
-      .eq('user_id', req.user.id);
-
-    if (error) {
+    const { paymentDetails, shippingAddressId } = req.body;
+    if (!paymentDetails) {
       res.status(400);
-      throw new Error(error.message);
+      throw new Error('Payment details are required');
     }
-
-    res.json({ message: 'Removed from wishlist' });
+    const result = await marketplaceService.checkout(req.user.id, paymentDetails, shippingAddressId);
+    res.status(200).json(result);
   } catch (error) {
     next(error);
   }
 };
 
-
-// --- PURCHASES & PAYMENTS (Cart Checkout) ---
-
-// @desc    Process a purchase (Checkout cart)
-// @route   POST /api/marketplace/purchase
+// @desc    Get secure digital download URL
+// @route   GET /api/v1/marketplace/downloads/:bookId
 // @access  Private
-const purchaseBooks = async (req, res, next) => {
+const getSecureDownload = async (req, res, next) => {
   try {
-    const { bookIds, amount, currency } = req.body; 
-
-    if (!bookIds || bookIds.length === 0) {
-      res.status(400);
-      throw new Error('No books selected for purchase');
-    }
-
-    // Record the payment
-    const { data: payment, error: paymentError } = await supabase
-      .from('payments')
-      .insert([{ 
-        user_id: req.user.id, 
-        amount, 
-        currency: currency || 'USD', 
-        status: 'Completed' 
-      }])
-      .select()
-      .single();
-
-    if (paymentError) {
-      res.status(400);
-      throw new Error(paymentError.message);
-    }
-
-    // Record individual purchases
-    const purchaseRecords = bookIds.map(bookId => ({
-      user_id: req.user.id,
-      book_id: bookId,
-      amount: amount / bookIds.length, 
-    }));
-
-    const { error: purchaseError } = await supabase
-      .from('purchases')
-      .insert(purchaseRecords);
-
-    if (purchaseError) {
-      res.status(400);
-      throw new Error(purchaseError.message);
-    }
-
-    res.status(201).json({ message: 'Purchase successful', payment });
+    const { bookId } = req.params;
+    const result = await marketplaceService.getSecureDownloadUrl(req.user.id, bookId);
+    res.json(result);
   } catch (error) {
+    res.status(403);
     next(error);
   }
 };
 
 // @desc    Get order history
-// @route   GET /api/marketplace/orders
+// @route   GET /api/v1/marketplace/orders
 // @access  Private
-const getOrderHistory = async (req, res, next) => {
+const getOrders = async (req, res, next) => {
   try {
-    const { data: purchases, error } = await supabase
-      .from('purchases')
-      .select('*, book:books(title, cover_url, price, author_id)')
-      .eq('user_id', req.user.id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      res.status(400);
-      throw new Error(error.message);
-    }
-
-    res.json(purchases);
+    const orders = await marketplaceService.getOrders(req.user.id);
+    res.json(orders);
   } catch (error) {
     next(error);
   }
 };
 
-
-// --- SUBSCRIPTIONS ---
-
-// @desc    Create or update subscription
-// @route   POST /api/marketplace/subscribe
-// @access  Private
-const createSubscription = async (req, res, next) => {
-  try {
-    const { plan, durationMonths } = req.body;
-    
-    const startDate = new Date();
-    const endDate = new Date();
-    endDate.setMonth(endDate.getMonth() + (durationMonths || 1));
-
-    const { data: subscription, error } = await supabase
-      .from('subscriptions')
-      .insert([{
-        user_id: req.user.id,
-        plan,
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString(),
-        status: 'Active'
-      }])
-      .select()
-      .single();
-
-    if (error) {
-      res.status(400);
-      throw new Error(error.message);
-    }
-
-    res.status(201).json(subscription);
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc    Get current subscription
-// @route   GET /api/marketplace/subscription
-// @access  Private
-const getSubscription = async (req, res, next) => {
-  try {
-    const { data: subscription, error } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('user_id', req.user.id)
-      .eq('status', 'Active')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (error && error.code === 'PGRST116') {
-      return res.json({ status: 'Inactive' });
-    } else if (error) {
-      res.status(400);
-      throw new Error(error.message);
-    }
-
-    res.json(subscription);
-  } catch (error) {
-    next(error);
-  }
-};
-
-export { 
-  getWishlist, addToWishlist, removeFromWishlist, 
-  purchaseBooks, getOrderHistory, 
-  createSubscription, getSubscription 
+export {
+  getCart,
+  addToCart,
+  checkout,
+  getSecureDownload,
+  getOrders
 };

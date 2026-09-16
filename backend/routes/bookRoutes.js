@@ -11,7 +11,7 @@ router.route('/')
   .post(
     protect, 
     authorizeRoles('Author', 'Admin'), 
-    upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'pdf', maxCount: 1 }]), 
+    upload.fields([{ name: 'cover', maxCount: 1 }, { name: 'pdf', maxCount: 1 }, { name: 'preview', maxCount: 1 }, { name: 'manuscript', maxCount: 1 }]), 
     uploadToSupabase('book-covers'), 
     createBook
   );

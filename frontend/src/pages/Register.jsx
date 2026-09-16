@@ -8,7 +8,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { registerUser } from '../store/slices/authSlice';
-import { supabase } from '../lib/supabase';
+import { getOAuthRedirectUrl, supabase } from '../lib/supabase';
 import { getDashboardRoute } from '../utils/roleRouter';
 
 /* ─── Brand tokens ───────────────────────────────────────────────── */
@@ -455,9 +455,7 @@ export default function Register() {
                   localStorage.setItem('selectedRole', mappedRole);
                   const { error } = await supabase.auth.signInWithOAuth({
                     provider: 'google',
-                    options: { 
-                      redirectTo: window.location.origin + import.meta.env.BASE_URL + getDashboardRoute(mappedRole).substring(1),
-                    },
+                    options: { redirectTo: getOAuthRedirectUrl() },
                   });
                   if (error) throw error;
                 } catch (err) { toast.error(err.message); }

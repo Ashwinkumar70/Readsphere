@@ -17,8 +17,11 @@ import libraryRoutes from './routes/libraryRoutes.js';
 import authorRoutes from './routes/authorRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
+import readerRoutes from './routes/readerRoutes.js';
+import contactRoutes from './routes/contactRoutes.js';
 
 // Load env first, before anything else
+import './services/eventSubscribers.js';
 
 // ── Environment validation ────────────────────────────────────────────────
 const REQUIRED_ENV = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_ANON_KEY'];
@@ -36,7 +39,7 @@ app.use(helmet());
 // ── CORS whitelist ────────────────────────────────────────────────────────
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : ['http://localhost:5173'];
+  : ['http://localhost:5173', 'http://127.0.0.1:5173'];
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -83,12 +86,14 @@ app.use('/api/auth', authRoutes);
 app.use('/api/authors', authorRoutes);
 app.use('/api/books', bookRoutes);
 app.use('/api/clubs', clubRoutes);
-app.use('/api/marketplace', marketplaceRoutes);
+app.use('/api/v1/marketplace', marketplaceRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/library', libraryRoutes);
-app.use('/api/ai', aiRoutes);
+app.use('/api/v1/ai', aiRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/reader', readerRoutes);
+app.use('/api/contact', contactRoutes);
 
 // ── Base routes ───────────────────────────────────────────────────────────
 app.get('/', (req, res) => {

@@ -1,61 +1,60 @@
-// @desc    Process a chat message
-// @route   POST /api/ai/chat
-// @access  Private
-const sendMessage = async (req, res, next) => {
+import { aiService } from '../services/ai/aiService.js';
+import { supabase } from '../config/supabase.js';
+
+export const handleAIGenerate = async (req, res, next) => {
   try {
-    const { message, bookId } = req.body;
+    const userId = req.user.id;
+    const role = req.user.role;
+    const { prompt, type, model, conversationId } = req.body;
+
+    // Rate Limiting Check
+    const { data: usage, error: usageError } = await supabase
+      .from('ai_usage_logs')
+      .select('id')
+      .eq('user_id', userId)
+      .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+
+    const isPremium = req.user.subscription === 'premium';
+    const limit = isPremium ? Infinity : 30;
+
+    if (!usageError && usage && usage.length >= limit) {
+      return res.status(429).json({ error: 'Daily AI limit reached (30 requests/day). Upgrade to premium for unlimited.' });
+    }
+
+    // Role Security
+    if (role === 'Reader' && ['seo', 'marketing', 'description'].includes(type)) {
+      return res.status(403).json({ error: 'Unauthorized AI action for Reader role.' });
+    }
+    if (role === 'Author' && ['summarize', 'quiz', 'flashcards', 'explain'].includes(type)) {
+      return res.status(403).json({ error: 'Unauthorized AI action for Author role.' });
+    }
+
+    const response = await aiService.generate(userId, prompt, type, model, conversationId);
+
+    if (!response.success) {
+      return res.status(500).json({ error: 'AI generation failed', details: response.error });
+    }
+
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAIHistory = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
     
-    if (!message) {
-      res.status(400);
-      throw new Error('Message is required');
-    }
+    const { data, error } = await supabase
+      .from('ai_conversations')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(20);
 
-    // Simulate AI Latency
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    // Dummy logic for a simulated AI response
-    const aiResponse = `I'm your ReadSphere AI Assistant. You asked about "${message}" in the context of book ${bookId || 'this book'}. In a production environment, this endpoint would connect to an LLM like OpenAI to provide a real analytical answer based on the book's text!`;
-
-    res.json({
-      role: 'assistant',
-      content: aiResponse
-    });
+    if (error) throw error;
+    res.json(data);
   } catch (error) {
     next(error);
   }
 };
-
-// @desc    Process a quick action
-// @route   POST /api/ai/action
-// @access  Private
-const executeAction = async (req, res, next) => {
-  try {
-    const { actionId, bookId } = req.body;
-
-    if (!actionId) {
-      res.status(400);
-      throw new Error('Action ID is required');
-    }
-
-    // Simulate AI Latency
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    const responses = {
-      explain: "On this page, the author introduces key concepts that drive the narrative forward. This is a simulated backend response for the 'Explain' action.",
-      summarize: "Here is a quick summary: The protagonist faces a major dilemma and learns important lessons. This is a simulated backend response for the 'Summarize' action.",
-      story: "The story so far: We've followed the main characters through various challenges. This is a simulated backend response for the 'Story So Far' action.",
-      listen: "Audio mode simulated. Imagine this text being spoken aloud to you. This is a simulated backend response for the 'Listen' action.",
-    };
-
-    const aiResponse = responses[actionId] || "Processing action...";
-
-    res.json({
-      role: 'assistant',
-      content: aiResponse
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export { sendMessage, executeAction };

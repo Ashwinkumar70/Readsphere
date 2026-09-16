@@ -1,199 +1,323 @@
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useSelector } from 'react-redux';
-import { Link } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchDashboard } from '../store/slices/dashboardSlice.js';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   BookOpen, Flame, TrendingUp, Users, IndianRupee, Play, UploadCloud, Search, 
   BarChart2, Star, Target, Edit3, Compass, LayoutList, CheckCircle, Sparkles, Activity, Clock,
-  FileText
+  FileText, ShoppingCart, Bell, Heart, Package, Download, UserCheck, MessageSquare, Zap
 } from 'lucide-react';
 import StatsCard from '../components/ui/StatsCard.jsx';
 import ChartCard, { SimpleBarChart } from '../components/ui/ChartCard.jsx';
-import AnalyticsCard from '../components/ui/AnalyticsCard.jsx';
 import TimelineCard from '../components/ui/TimelineCard.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import Badge from '../components/ui/Badge.jsx';
 import Button from '../components/ui/Button.jsx';
 import DashboardLayout from '../components/layout/DashboardLayout.jsx';
 import BookCard from '../components/cards/BookCard.jsx';
+import AIWorkspaceWidget from '../components/ui/AIWorkspaceWidget.jsx';
 
 const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } } };
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.08 } } };
 
 export default function ReaderAuthorDashboard() {
-  const { data } = useSelector(state => state.dashboard);
-  const user = useSelector(state => state.auth.user);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { data, loading, error } = useSelector((state) => state.dashboard);
+  const { user } = useSelector((state) => state.auth);
 
-  const { reader, author, combined } = data || {};
-  const currentBook = reader?.currentlyReading?.[0];
+  useEffect(() => {
+    dispatch(fetchDashboard());
+  }, [dispatch]);
+
+  if (loading || !data) {
+    return (
+      <DashboardLayout title="Workspace">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout title="Workspace">
+        <EmptyState
+          icon={Activity}
+          title="Unable to load workspace"
+          description={error}
+          action={{ label: "Retry", onClick: () => dispatch(fetchDashboard()) }}
+        />
+      </DashboardLayout>
+    );
+  }
+
+  const { reader, author, marketplace, combined, notifications } = data;
 
   return (
-    <DashboardLayout>
-      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-10 pb-12">
-
-        {/* 1. GLOBAL HERO */}
-        <motion.div variants={fadeUp} className="bg-gradient-primary rounded-[32px] p-8 md:p-10 text-white shadow-soft-lg relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-[0.03] rounded-full blur-3xl pointer-events-none" />
-          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
-            <div className="max-w-xl">
-              <Badge color="premium" className="mb-4 bg-white/20 text-white border-none backdrop-blur-sm">Hybrid Workspace</Badge>
-              <h1 className="text-4xl font-heading font-bold mb-2 tracking-tight">Morning Brief, {user?.name?.split(' ')[0]}</h1>
-              <p className="text-white/80 font-light text-lg">Manage your reading journey and publishing empire in one unified place.</p>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-3 shrink-0">
-              <Link to="/library">
-                <Button icon={Play} className="w-full bg-white text-primary hover:bg-gray-50 border-none shadow-soft">Continue Reading</Button>
-              </Link>
-              <Link to="/upload">
-                <Button icon={UploadCloud} variant="outline" className="w-full border-white/30 text-white hover:bg-white/10 backdrop-blur-sm">Upload Book</Button>
-              </Link>
+    <DashboardLayout title="Workspace">
+      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-12 pb-24">
+        
+        {/* 1. Morning Brief */}
+        <motion.section variants={fadeUp} className="bg-gradient-to-r from-primary-50 to-secondary-50 rounded-3xl p-8 border border-primary-100">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+              <h2 className="text-3xl font-heading font-bold text-text mb-2">Morning, {user?.name?.split(' ')[0]}!</h2>
+              <p className="text-muted">You have {notifications?.length || 0} unread notifications. Here's your unified summary for today.</p>
             </div>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-8 border-t border-white/10 relative z-10">
-            <div>
-              <p className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-1">Reading Goal</p>
-              <p className="text-2xl font-bold font-heading">{reader?.readingGoal || 0} <span className="text-sm font-normal text-white/60">books</span></p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+            <div className="bg-white/60 p-4 rounded-xl border border-white/40">
+              <div className="text-sm text-muted mb-1 flex items-center gap-2"><BookOpen size={14}/> Reading Progress</div>
+              <div className="text-2xl font-bold">{reader?.booksRead || 0} <span className="text-sm text-muted font-normal">/ {reader?.readingGoal || 20} Goal</span></div>
             </div>
-            <div>
-              <p className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-1">Reading Streak</p>
-              <p className="text-2xl font-bold font-heading">{reader?.readingStreak || 0} <span className="text-sm font-normal text-white/60">days</span></p>
+            <div className="bg-white/60 p-4 rounded-xl border border-white/40">
+              <div className="text-sm text-muted mb-1 flex items-center gap-2"><IndianRupee size={14}/> Revenue Today</div>
+              <div className="text-2xl font-bold">₹{(combined?.monthlyRevenue?.[new Date().getMonth()]?.value || 0)}</div>
             </div>
-            <div>
-              <p className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-1">Books Published</p>
-              <p className="text-2xl font-bold font-heading">{author?.publishedBooks || 0}</p>
+            <div className="bg-white/60 p-4 rounded-xl border border-white/40">
+              <div className="text-sm text-muted mb-1 flex items-center gap-2"><ShoppingCart size={14}/> Books Purchased</div>
+              <div className="text-2xl font-bold">{combined?.booksPurchased || 0}</div>
             </div>
-            <div>
-              <p className="text-xs text-white/60 uppercase tracking-wider font-semibold mb-1">Total Revenue</p>
-              <p className="text-2xl font-bold font-heading">₹{(author?.revenue || 0).toLocaleString()}</p>
+            <div className="bg-white/60 p-4 rounded-xl border border-white/40">
+              <div className="text-sm text-muted mb-1 flex items-center gap-2"><UploadCloud size={14}/> Books Published</div>
+              <div className="text-2xl font-bold">{author?.publishedBooks || 0}</div>
             </div>
           </div>
-        </motion.div>
+        </motion.section>
 
-        <div className="grid lg:grid-cols-2 gap-10">
+        {/* 2. Continue Reading */}
+        <motion.section variants={fadeUp}>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-text flex items-center gap-2">
+              <Play size={20} className="text-primary" /> Continue Reading
+            </h3>
+            <Link to="/library" className="text-primary text-sm font-medium hover:underline">View Library</Link>
+          </div>
           
-          {/* ======================================= */}
-          {/* READER WORKSPACE */}
-          {/* ======================================= */}
-          <section className="space-y-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-[16px] bg-primary/10 flex items-center justify-center text-primary">
-                <BookOpen size={20} />
-              </div>
-              <h2 className="text-2xl font-heading font-bold text-text">Reading Progress</h2>
-            </div>
-            
-            <motion.div variants={fadeUp} className="bg-white rounded-[24px] border border-transparent hover:border-primary/10 p-6 shadow-soft transition-colors group">
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="font-bold font-heading text-text">Currently Reading</h3>
-                <Link to="/library" className="text-xs text-primary font-medium hover:underline">Library</Link>
-              </div>
-              {currentBook ? (
-                <div className="flex gap-4 items-center">
-                  <img src={currentBook.cover} alt="Cover" className="w-16 h-24 object-cover rounded-lg shadow-soft" />
-                  <div className="flex-1">
-                    <h4 className="font-bold text-text line-clamp-1">{currentBook.title}</h4>
-                    <p className="text-sm text-muted mb-3">{currentBook.author}</p>
-                    <div className="w-full bg-gray-100 rounded-full h-1.5 mb-2">
-                      <div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${currentBook.readProgress}%` }} />
-                    </div>
-                    <div className="flex justify-between text-xs text-muted">
-                      <span>{currentBook.readProgress}%</span>
+          {reader?.currentlyReading?.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {reader.currentlyReading.map((book) => (
+                <div key={book.id} className="bg-white rounded-2xl border border-border p-4 shadow-sm hover:border-primary/30 transition-colors flex flex-col justify-between">
+                  <div className="flex gap-4">
+                    <img src={book.cover} alt={book.title} className="w-16 h-24 object-cover rounded-md" />
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-sm text-text truncate mb-1">{book.title}</h4>
+                      <p className="text-xs text-muted mb-3">{book.author}</p>
+                      <div className="w-full bg-gray-100 rounded-full h-1.5 mb-1">
+                        <div className="bg-primary h-1.5 rounded-full" style={{ width: `${book.readProgress}%` }}></div>
+                      </div>
+                      <div className="text-xs text-muted">{book.readProgress}% complete</div>
                     </div>
                   </div>
-                  <Link to="/library">
-                    <Button icon={Play} className="rounded-full w-10 h-10 p-0 flex items-center justify-center bg-gray-50 text-primary hover:bg-primary hover:text-white border border-border transition-colors shrink-0" />
-                  </Link>
+                  <Button size="sm" full className="mt-4" onClick={() => navigate(`/reader/${book.id}`)}>Resume Reading</Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState icon={BookOpen} title="No books in progress" description="Start reading from your library" />
+          )}
+        </motion.section>
+
+        {/* 3. Author Overview */}
+        <motion.section variants={fadeUp}>
+          <h3 className="text-xl font-bold text-text flex items-center gap-2 mb-6">
+             <BarChart2 size={20} className="text-primary" /> Author Overview
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatsCard title="Revenue" value={`₹${author?.revenue || 0}`} icon={IndianRupee} />
+            <StatsCard title="Books Sold" value={author?.sales || 0} icon={ShoppingCart} />
+            <StatsCard title="Downloads" value={author?.downloads || 0} icon={Download} />
+            <StatsCard title="Readers" value={author?.readers || 0} icon={UserCheck} />
+            <StatsCard title="Avg Rating" value="4.8" icon={Star} color="secondary" />
+            <StatsCard title="Reviews" value={(author?.recentReviews?.length || 0) * 12} icon={MessageSquare} />
+            <StatsCard title="Published" value={author?.publishedBooks || 0} icon={CheckCircle} color="success" />
+            <StatsCard title="Drafts" value={author?.draftBooks || 0} icon={Edit3} color="warning" />
+          </div>
+        </motion.section>
+
+        {/* 4 & 5. Reading & Publishing Analytics */}
+        <motion.section variants={fadeUp} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Reading Analytics */}
+          <div className="bg-white rounded-3xl border border-border p-8 shadow-sm">
+            <h3 className="text-xl font-bold text-text flex items-center gap-2 mb-6">
+              <Activity size={20} className="text-secondary" /> Reading Analytics
+            </h3>
+            <div className="space-y-6">
+              <div className="flex justify-between items-center pb-4 border-b border-border">
+                <div className="flex items-center gap-3"><BookOpen size={18} className="text-muted"/> Books Read</div>
+                <div className="font-bold">{reader?.booksRead || 0}</div>
+              </div>
+              <div className="flex justify-between items-center pb-4 border-b border-border">
+                <div className="flex items-center gap-3"><FileText size={18} className="text-muted"/> Pages Read</div>
+                <div className="font-bold">{reader?.pagesRead || 0}</div>
+              </div>
+              <div className="flex justify-between items-center pb-4 border-b border-border">
+                <div className="flex items-center gap-3"><Clock size={18} className="text-muted"/> Reading Time</div>
+                <div className="font-bold">{Math.floor((reader?.pagesRead || 0) * 1.5)} mins</div>
+              </div>
+              <div className="flex justify-between items-center pb-4 border-b border-border">
+                <div className="flex items-center gap-3"><Target size={18} className="text-muted"/> Reading Goal</div>
+                <div className="font-bold">{reader?.booksRead || 0} / {reader?.readingGoal || 20}</div>
+              </div>
+              <div className="flex justify-between items-center pb-4">
+                <div className="flex items-center gap-3"><Flame size={18} className="text-orange-500"/> Reading Streak</div>
+                <div className="font-bold text-orange-500">{reader?.readingStreak || 0} days</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Publishing Analytics */}
+          <div className="bg-white rounded-3xl border border-border p-8 shadow-sm flex flex-col">
+            <h3 className="text-xl font-bold text-text flex items-center gap-2 mb-6">
+              <TrendingUp size={20} className="text-primary" /> Publishing Analytics
+            </h3>
+            <div className="flex-1 flex flex-col justify-between">
+              <div className="mb-6">
+                <div className="text-sm font-medium text-muted mb-2">Revenue vs Sales (Last 6 Months)</div>
+                <div className="h-48">
+                  <SimpleBarChart data={combined?.monthlyRevenue || []} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-gray-50 rounded-xl">
+                  <div className="text-xs text-muted uppercase tracking-wider mb-1">Reader Growth</div>
+                  <div className="text-lg font-bold text-green-600">+24%</div>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-xl">
+                  <div className="text-xs text-muted uppercase tracking-wider mb-1">Draft vs Pub</div>
+                  <div className="text-lg font-bold">{author?.draftBooks || 0} / {author?.publishedBooks || 0}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.section>
+
+        {/* 6 & 7. Marketplace Summary & Notifications */}
+        <motion.section variants={fadeUp} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Marketplace Summary */}
+          <div>
+            <h3 className="text-xl font-bold text-text flex items-center gap-2 mb-6">
+              <Package size={20} className="text-primary" /> Marketplace Summary
+            </h3>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+               <StatsCard title="Orders" value={marketplace?.orders || 0} icon={Package} />
+               <StatsCard title="Wishlist" value={marketplace?.wishlist || 0} icon={Heart} />
+            </div>
+            <div className="bg-white rounded-2xl border border-border p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="font-bold">Recent Purchases</h4>
+                <Link to="/orders" className="text-primary text-sm hover:underline">View Orders</Link>
+              </div>
+              {marketplace?.recentOrders?.length > 0 ? (
+                <div className="space-y-3">
+                  {marketplace.recentOrders.slice(0,3).map((o, i) => (
+                    <div key={i} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                      <div className="text-sm font-medium truncate max-w-[200px]">{o.items}</div>
+                      <Badge color={o.status === 'Completed' ? 'success' : 'warning'}>{o.status}</Badge>
+                    </div>
+                  ))}
                 </div>
               ) : (
-                <EmptyState icon={BookOpen} title="No active books" description="Find your next read." actionLabel="Discover" actionLink="/marketplace" className="p-4 border-none bg-transparent"/>
+                <EmptyState icon={ShoppingCart} title="No purchases" />
               )}
-            </motion.div>
-            
-            <motion.div variants={fadeUp} className="bg-white rounded-[24px] border border-transparent p-6 shadow-soft hover:border-primary/10 transition-colors">
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="font-bold font-heading text-text">Recommendations</h3>
-                <Link to="/marketplace" className="text-xs text-primary font-medium hover:underline">Discover</Link>
-              </div>
-              <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar snap-x">
-                {combined?.recommendations?.length > 0 ? (
-                  combined.recommendations.map((book, i) => (
-                    <div key={i} className="snap-start shrink-0 w-28">
-                      <BookCard book={book} size="sm" className="border-none shadow-none bg-transparent hover:-translate-y-1 transition-transform" />
-                    </div>
-                  ))
-                ) : (
-                  <EmptyState icon={Compass} title="No recommendations" description="Check the marketplace for suggestions." className="p-4 w-full border-none bg-transparent" />
-                )}
-              </div>
-            </motion.div>
-          </section>
-
-          {/* ======================================= */}
-          {/* AUTHOR WORKSPACE */}
-          {/* ======================================= */}
-          <section className="space-y-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-[16px] bg-text text-white flex items-center justify-center shadow-soft">
-                <Edit3 size={20} />
-              </div>
-              <h2 className="text-2xl font-heading font-bold text-text">Sales Progress</h2>
             </div>
-            
-            <motion.div variants={stagger} className="grid grid-cols-2 gap-4">
-              <StatsCard title="Monthly Sales" value={(author?.sales || 0).toLocaleString()} icon={TrendingUp} color="primary" className="bg-white border-transparent hover:border-primary/10 transition-colors" />
-              <StatsCard title="Total Readers" value={(author?.readers || 0).toLocaleString()} icon={Users} color="secondary" className="bg-white border-transparent hover:border-primary/10 transition-colors" />
-            </motion.div>
-
-            <motion.div variants={fadeUp} className="grid grid-cols-1">
-              <AnalyticsCard title="Revenue Growth" subtitle="Earnings tracking">
-                {combined?.monthlyRevenue?.length > 0 ? (
-                  <SimpleBarChart data={combined.monthlyRevenue} height={140} />
-                ) : (
-                  <EmptyState icon={IndianRupee} title="No revenue data" description="Publish a book to start tracking earnings." className="mt-4 p-4 border-none shadow-none bg-transparent"/>
-                )}
-              </AnalyticsCard>
-            </motion.div>
-            
-          </section>
-
-        </div>
-
-        {/* ======================================= */}
-        {/* UNIFIED ACTIVITY & AI WORKSPACE */}
-        {/* ======================================= */}
-        <section className="pt-6 border-t border-gray-100">
-          <div className="grid lg:grid-cols-3 gap-8">
-            
-            <motion.div variants={fadeUp} className="bg-gradient-card rounded-[24px] border border-border p-6 shadow-soft relative overflow-hidden group">
-               <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opacity-50 pointer-events-none" />
-               <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center text-accent">
-                      <Sparkles size={16} />
-                    </div>
-                    <h3 className="font-bold font-heading text-text">AI Workspace</h3>
-                  </div>
-                  <p className="text-sm text-muted mb-5">Smart tools for both reading and writing.</p>
-                  
-                  <div className="space-y-2">
-                    <Button variant="outline" className="w-full justify-start bg-white hover:border-accent hover:text-accent border-border shadow-sm"><BookOpen size={16} className="mr-2"/> AI Reader Assistant</Button>
-                    <Button variant="outline" className="w-full justify-start bg-white hover:border-accent hover:text-accent border-border shadow-sm"><Edit3 size={16} className="mr-2"/> AI Writing Assistant</Button>
-                    <Button variant="outline" className="w-full justify-start bg-white hover:border-accent hover:text-accent border-border shadow-sm"><BarChart2 size={16} className="mr-2"/> AI Marketing Copilot</Button>
-                  </div>
-               </div>
-            </motion.div>
-
-            <motion.div variants={fadeUp} className="bg-white rounded-[24px] border border-transparent hover:border-primary/10 p-6 shadow-soft transition-colors lg:col-span-2">
-               <h3 className="font-bold font-heading text-text mb-6 flex items-center gap-2"><Activity size={18}/> Unified Timeline</h3>
-               <TimelineCard 
-                 activities={combined?.recentActivity} 
-                 emptyState={<EmptyState icon={Clock} title="No activity" description="Your reading and publishing journey will appear here." className="p-4 border-none bg-transparent"/>}
-               />
-            </motion.div>
-
           </div>
-        </section>
+
+          {/* Notifications */}
+          <div>
+            <h3 className="text-xl font-bold text-text flex items-center gap-2 mb-6">
+              <Bell size={20} className="text-primary" /> Notifications
+            </h3>
+            <div className="bg-white border border-border rounded-2xl p-6 shadow-sm min-h-[340px] max-h-[340px] overflow-y-auto">
+              {notifications?.length > 0 ? (
+                <div className="space-y-4">
+                  {notifications.map(note => (
+                    <div key={note.id} className="flex gap-3 border-b border-border pb-3 last:border-0">
+                      <div className={`w-2 h-2 mt-2 rounded-full shrink-0 ${note.is_read ? 'bg-gray-300' : 'bg-primary'}`}></div>
+                      <div>
+                        <div className="font-medium text-sm text-text">{note.title}</div>
+                        <div className="text-xs text-muted mt-1">{note.message}</div>
+                        <div className="text-xs text-gray-400 mt-1">{new Date(note.created_at).toLocaleDateString()}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState icon={Bell} title="All caught up" description="No new notifications" />
+              )}
+            </div>
+          </div>
+        </motion.section>
+
+        {/* 8. Recent Activity */}
+        <motion.section variants={fadeUp}>
+          <h3 className="text-xl font-bold text-text flex items-center gap-2 mb-6">
+             <Activity size={20} className="text-primary" /> Recent Activity
+          </h3>
+          <div className="bg-white rounded-3xl border border-border p-8 shadow-sm">
+            {combined?.recentActivity?.length > 0 ? (
+              <div className="space-y-6">
+                {combined.recentActivity.map((activity, i) => (
+                  <div key={i} className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0 mt-1">
+                      {activity.type === 'reading' && <BookOpen size={18} />}
+                      {activity.type === 'publishing' && <Star size={18} />}
+                      {activity.type === 'purchase' && <ShoppingCart size={18} />}
+                    </div>
+                    <div>
+                      <div className="font-medium text-text">{activity.action} <span className="font-bold text-primary">{activity.bookTitle}</span></div>
+                      <div className="text-sm text-muted mt-1">{new Date(activity.date).toLocaleString()}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState icon={Activity} title="No recent activity" />
+            )}
+          </div>
+        </motion.section>
+
+        {/* 9. AI Workspace & 10. Quick Actions */}
+        <motion.section variants={fadeUp} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* AI Workspace */}
+          <AIWorkspaceWidget />
+
+          {/* Quick Actions */}
+          <div className="bg-white rounded-3xl border border-border p-8 shadow-sm">
+            <h3 className="text-xl font-bold mb-6">Quick Actions</h3>
+            <div className="space-y-6">
+              
+              <div>
+                <div className="text-xs text-muted uppercase tracking-wider mb-3">Author</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button variant="outline" className="justify-start gap-2" onClick={() => navigate('/upload')}><UploadCloud size={16}/> Upload Book</Button>
+                  <Button variant="outline" className="justify-start gap-2" onClick={() => navigate('/author')}><BarChart2 size={16}/> Manage Books</Button>
+                </div>
+              </div>
+
+              <div>
+                <div className="text-xs text-muted uppercase tracking-wider mb-3">Reader</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button variant="outline" className="justify-start gap-2" onClick={() => navigate('/library')}><BookOpen size={16}/> Library</Button>
+                  <Button variant="outline" className="justify-start gap-2" onClick={() => navigate('/marketplace')}><Search size={16}/> Marketplace</Button>
+                </div>
+              </div>
+
+              <div>
+                <div className="text-xs text-muted uppercase tracking-wider mb-3">Shared</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button variant="ghost" className="justify-start gap-2 bg-gray-50" onClick={() => navigate('/orders')}><Package size={16}/> Orders</Button>
+                  <Button variant="ghost" className="justify-start gap-2 bg-gray-50" onClick={() => navigate('/settings')}><Compass size={16}/> Settings</Button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </motion.section>
 
       </motion.div>
     </DashboardLayout>

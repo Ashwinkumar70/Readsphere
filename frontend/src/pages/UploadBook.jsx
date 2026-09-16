@@ -2,6 +2,8 @@ import { motion } from 'framer-motion';
 import { UploadCloud, CheckCircle, FileText, Image, AlertCircle, BookOpen } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { uploadBook } from '../store/slices/bookSlice.js';
 import Button from '../components/ui/Button.jsx';
 import Input from '../components/ui/Input.jsx';
 import toast from 'react-hot-toast';
@@ -9,21 +11,44 @@ import toast from 'react-hot-toast';
 const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } };
 
 export default function UploadBook() {
+  const dispatch = useDispatch();
   const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const { loading, error } = useSelector(state => state.books);
+  
   const [form, setForm] = useState({
     title: '', author: '', genre: 'Fiction', price: '9.99', description: ''
   });
-  const files = { cover: null, pdf: null };
+  
+  const [files, setFiles] = useState({
+    cover: null, pdf: null, preview: null
+  });
 
-  const handleUpload = (e) => {
+  const handleUpload = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    
+    if (!files.cover || !files.pdf) {
+      toast.error('Cover and Book File are required');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('title', form.title);
+    formData.append('description', form.description);
+    formData.append('price', form.price);
+    formData.append('categories', form.genre);
+    
+    formData.append('cover', files.cover);
+    formData.append('pdf', files.pdf);
+    if (files.preview) formData.append('preview', files.preview);
+
+    const resultAction = await dispatch(uploadBook(formData));
+    
+    if (uploadBook.fulfilled.match(resultAction)) {
       setStep(3); // Success step
-      toast.success('Book published successfully!');
-    }, 2000);
+      toast.success('Book published as Draft!');
+    } else {
+      toast.error(resultAction.payload || 'Failed to upload book');
+    }
   };
 
   return (
@@ -118,27 +143,38 @@ export default function UploadBook() {
             {/* Cover Upload */}
             <div>
               <label className="text-sm font-semibold text-text mb-2 block">Book Cover</label>
-              <div className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center transition-colors cursor-pointer ${files.cover ? 'border-primary bg-primary-50' : 'border-border hover:bg-gray-50'}`}>
+              <label className={`block border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center transition-colors cursor-pointer ${files.cover ? 'border-primary bg-primary-50' : 'border-border hover:bg-gray-50'}`}>
                 <Image size={32} className={files.cover ? 'text-primary mb-3' : 'text-muted mb-3'} />
-                <p className="text-sm font-bold text-text mb-1">{files.cover ? 'Cover Uploaded' : 'Click to upload cover'}</p>
+                <p className="text-sm font-bold text-text mb-1">{files.cover ? files.cover.name : 'Click to upload cover'}</p>
                 <p className="text-xs text-muted">JPEG or PNG, up to 5MB (ideal ratio 2:3)</p>
-                {/* Hidden input mockup */}
-                <input type="file" className="hidden" />
-              </div>
+                <input type="file" className="hidden" accept="image/jpeg, image/png" onChange={e => setFiles({...files, cover: e.target.files[0]})} />
+              </label>
             </div>
 
             {/* PDF Upload */}
             <div>
               <label className="text-sm font-semibold text-text mb-2 block">Book File (PDF/EPUB)</label>
-              <div className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center transition-colors cursor-pointer ${files.pdf ? 'border-primary bg-primary-50' : 'border-border hover:bg-gray-50'}`}>
+              <label className={`block border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center transition-colors cursor-pointer ${files.pdf ? 'border-primary bg-primary-50' : 'border-border hover:bg-gray-50'}`}>
                 <FileText size={32} className={files.pdf ? 'text-primary mb-3' : 'text-muted mb-3'} />
-                <p className="text-sm font-bold text-text mb-1">{files.pdf ? 'Manuscript Uploaded' : 'Click to upload manuscript'}</p>
+                <p className="text-sm font-bold text-text mb-1">{files.pdf ? files.pdf.name : 'Click to upload manuscript'}</p>
                 <p className="text-xs text-muted">PDF or EPUB, up to 50MB</p>
-              </div>
+                <input type="file" className="hidden" accept="application/pdf, application/epub+zip" onChange={e => setFiles({...files, pdf: e.target.files[0]})} />
+              </label>
+            </div>
+            
+            {/* Preview Upload */}
+            <div>
+              <label className="text-sm font-semibold text-text mb-2 block">Preview File (PDF/EPUB)</label>
+              <label className={`block border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center transition-colors cursor-pointer ${files.preview ? 'border-primary bg-primary-50' : 'border-border hover:bg-gray-50'}`}>
+                <FileText size={32} className={files.preview ? 'text-primary mb-3' : 'text-muted mb-3'} />
+                <p className="text-sm font-bold text-text mb-1">{files.preview ? files.preview.name : 'Click to upload preview (Optional)'}</p>
+                <p className="text-xs text-muted">PDF or EPUB, up to 10MB</p>
+                <input type="file" className="hidden" accept="application/pdf, application/epub+zip" onChange={e => setFiles({...files, preview: e.target.files[0]})} />
+              </label>
             </div>
 
             <div className="pt-4 flex items-center justify-between">
-              <Button variant="ghost" onClick={() => setStep(1)}>← Back</Button>
+              <Button variant="ghost" onClick={() => setStep(1)} type="button">← Back</Button>
               <Button type="submit" loading={loading} icon={UploadCloud}>Publish Book</Button>
             </div>
           </motion.form>

@@ -25,6 +25,22 @@ export const fetchBookById = createAsyncThunk(
   }
 );
 
+export const uploadBook = createAsyncThunk(
+  'books/uploadBook',
+  async (formData, thunkAPI) => {
+    try {
+      const response = await api.post('/books', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response?.data?.message || error.message);
+    }
+  }
+);
+
 const initialState = {
   books: [],
   currentBook: null,
@@ -61,6 +77,17 @@ const bookSlice = createSlice({
         state.currentBook = action.payload;
       })
       .addCase(fetchBookById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(uploadBook.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(uploadBook.fulfilled, (state, action) => {
+        state.loading = false;
+        state.books.push(action.payload);
+      })
+      .addCase(uploadBook.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });

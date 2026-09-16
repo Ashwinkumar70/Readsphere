@@ -192,6 +192,46 @@ const buildAuthorDashboard = async (userId) => {
   }
 };
 
+// Helper: Get safe marketplace stats
+const buildMarketplaceDashboard = async (userId) => {
+  try {
+    // Orders / Purchases
+    const { data: ordersData } = await supabase
+      .from('orders')
+      .select('id, total_amount, status, created_at, order_items(book_id, price, books(title, cover_url, authors(name)))')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    const orders = ordersData || [];
+    const booksPurchased = orders.filter(o => o.status === 'Completed').reduce((acc, o) => acc + (o.order_items?.length || 0), 0);
+    const recentOrders = orders.slice(0, 5).map(o => ({
+      id: o.id,
+      amount: o.total_amount,
+      status: o.status,
+      date: o.created_at,
+      items: o.order_items?.map(i => i.books?.title).join(', ')
+    }));
+
+    // Wishlist
+    const { data: wishlistData } = await supabase
+      .from('bookmarks')
+      .select('id')
+      .eq('user_id', userId);
+    
+    return {
+      orders: orders.length,
+      purchases: booksPurchased,
+      wishlist: wishlistData?.length || 0,
+      recentOrders,
+      recentlyViewed: [], // Safe default
+      recommendedBooks: [] // Handled in reader
+    };
+  } catch (error) {
+    console.error('Marketplace Dashboard Error:', error);
+    return { orders: 0, purchases: 0, wishlist: 0, recentOrders: [], recentlyViewed: [], recommendedBooks: [] };
+  }
+};
+
 // Main Controller
 export const getDashboard = async (req, res, next) => {
   try {
@@ -205,33 +245,47 @@ export const getDashboard = async (req, res, next) => {
       .eq('user_id', userId)
       .eq('is_read', false)
       .order('created_at', { ascending: false })
-      .limit(5);
+      .limit(10);
       
     const notifications = notificationsData || [];
 
     if (role === 'Reader') {
       const readerData = await buildReaderDashboard(userId);
-      return res.json({ role, ...readerData, notifications });
+      const marketplaceData = await buildMarketplaceDashboard(userId);
+      return res.json({ role, ...readerData, marketplace: marketplaceData, notifications });
     }
 
     if (role === 'Author') {
       const authorData = await buildAuthorDashboard(userId);
-      return res.json({ role, ...authorData, notifications });
+      const marketplaceData = await buildMarketplaceDashboard(userId);
+      return res.json({ role, ...authorData, marketplace: marketplaceData, notifications });
     }
 
     if (role === 'ReaderAuthor') {
       const readerData = await buildReaderDashboard(userId);
       const authorData = await buildAuthorDashboard(userId);
+      const marketplaceData = await buildMarketplaceDashboard(userId);
+      
+      // Combine Activity Feed Chronologically
+      const allActivity = [
+        ...(readerData.recentActivity || []).map(a => ({ type: 'reading', ...a })),
+        ...(authorData.recentReviews || []).map(r => ({ type: 'publishing', action: 'Received Review', bookTitle: r.bookTitle, date: r.date })),
+        ...(marketplaceData.recentOrders || []).map(o => ({ type: 'purchase', action: `Order ${o.status}`, bookTitle: o.items, date: o.date }))
+      ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
+
       return res.json({ 
         role,
         reader: readerData,
         author: authorData,
+        marketplace: marketplaceData,
         combined: {
           monthlyRevenue: authorData.monthlySalesChart,
           readingProgress: readerData.booksRead,
           topSellingBook: authorData.bestSellingBook,
           recommendedBooks: readerData.recommendations,
           recentReviews: authorData.recentReviews,
+          recentActivity: allActivity,
+          booksPurchased: marketplaceData.purchases
         },
         notifications
       });

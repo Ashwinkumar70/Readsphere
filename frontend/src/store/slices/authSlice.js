@@ -153,7 +153,9 @@ const authSlice = createSlice({
       })
       // Fetch Profile
       .addCase(fetchUserProfile.pending, (state) => {
-        state.loading = true;
+        if (!state.user) {
+          state.loading = true;
+        }
       })
       .addCase(fetchUserProfile.fulfilled, (state, action) => {
         state.loading = false;

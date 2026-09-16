@@ -7,21 +7,29 @@ import {
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchBookById, clearCurrentBook } from '../store/slices/bookSlice.js';
+import { fetchPreferences, updatePreferences, fetchBookFileUrl } from '../store/slices/readerSlice.js';
 import AIWidget from '../components/cards/AIWidget.jsx';
 
 export default function Reader() {
   const { id } = useParams();
   const dispatch = useDispatch();
-  const { currentBook: book, loading } = useSelector(state => state.books);
+  const { currentBook: book, loading: bookLoading } = useSelector(state => state.books);
+  const { preferences, fileUrl, loading: readerLoading } = useSelector(state => state.reader);
 
   useEffect(() => {
     dispatch(fetchBookById(id));
+    dispatch(fetchPreferences());
+    dispatch(fetchBookFileUrl(id));
     return () => dispatch(clearCurrentBook());
   }, [dispatch, id]);
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const theme = 'light'; // light, sepia, dark
-  const fontSize = 18;
+  
+  // Use DB preferences with fallbacks
+  const theme = preferences?.theme || 'light'; 
+  const fontSize = preferences?.font_size || 18;
+  const fontFamily = preferences?.font_family || 'Georgia, serif';
+  const lineHeight = preferences?.line_height || 1.5;
 
   const textClass =
     theme === 'dark' ? 'bg-[#121212] text-[#E0E0E0]' :
@@ -29,30 +37,11 @@ export default function Reader() {
     'bg-white text-[#1E293B]';
 
   const textBlock = `
-    Nora Seed sat on a low wall beside the crumbling church. She looked at the digital display of her watch. 23:22.
-    \n\n
-    The air was cold, and her breath plumed out in front of her like smoke. There was a thin layer of frost on the pavement, glittering under the weak glow of the streetlamp. She had made her decision. It wasn't a sudden impulse, but a slow, creeping realization that had settled in her bones over the past year.
-    \n\n
-    A cat, a ginger tom missing half its left ear, rubbed against her legs, purring loudly. Nora reached down and stroked its head, feeling a pang of sorrow. "Sorry, Volts," she whispered. "I won't be able to feed you tomorrow."
-    \n\n
-    She stood up, pulling her coat tighter around her. The library. She remembered Mrs. Elm, the school librarian, telling her once that every life is a book waiting to be read. She hadn't understood it then.
-    \n\n
-    The fog thickened as she walked toward the river. But then, something strange happened. The fog didn't just obscure the street; it seemed to replace it. The concrete beneath her feet softened. The cold air turned warm and still. The distant hum of traffic vanished, replaced by an absolute, profound silence.
-    \n\n
-    When the fog cleared, Nora wasn't standing by the river.
-    \n\n
-    She was standing inside a building. A building that defied all logic. It stretched out in every direction—left, right, up, down—as far as the eye could see. And every inch of it was lined with bookshelves.
-    \n\n
-    Millions of books. Billions. An infinite number of books. Their spines were all shades of green, from the palest mint to the deepest emerald.
-    \n\n
-    In the center of the room, behind a sturdy oak desk, sat a woman. She looked exactly as Nora remembered her from nineteen years ago.
-    \n\n
-    "Mrs. Elm?" Nora croaked, her voice barely a whisper.
-    \n\n
-    The older woman looked up, adjusting her glasses. "Hello, Nora," she said kindly. "Welcome to the Midnight Library."
+    Nora Seed sat on a low wall beside the crumbling church...
+    [NOTE: Actual EPUB/PDF rendering requires react-reader/react-pdf libraries which failed to install due to local SSL errors. The file URL is: ${fileUrl}]
   `;
 
-  if (loading || !book) {
+  if (bookLoading || readerLoading || !book) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
         <p className="text-muted animate-pulse">Loading reader...</p>
@@ -61,7 +50,7 @@ export default function Reader() {
   }
 
   return (
-    <div className={`h-screen flex flex-col overflow-hidden transition-colors duration-300 ${textClass}`}>
+    <div className={`h-screen flex flex-col overflow-hidden transition-colors duration-300 ${textClass}`} style={{ fontFamily }}>
       {/* Top Navbar */}
       <header className={`h-14 shrink-0 flex items-center justify-between px-4 border-b ${theme === 'dark' ? 'border-white/10' : 'border-black/10'}`}>
         <div className="flex items-center gap-4">

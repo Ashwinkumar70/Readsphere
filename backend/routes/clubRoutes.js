@@ -6,7 +6,9 @@ import {
   leaveClub, 
   postClubMessage, 
   getClubMessages, 
-  updateMemberRole 
+  updateMemberRole,
+  editClubMessage,
+  deleteClubMessage
 } from '../controllers/clubController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { upload, uploadToSupabase } from '../middleware/uploadMiddleware.js';
@@ -26,5 +28,9 @@ router.put('/:id/members/:userId/role', protect, updateMemberRole);
 router.route('/:id/messages')
   .get(protect, getClubMessages)
   .post(protect, postClubMessage);
+
+router.route('/messages/:msgId')
+  .put(protect, editClubMessage)
+  .delete(protect, deleteClubMessage);
 
 export default router;

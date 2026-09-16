@@ -45,7 +45,7 @@ const getAuthorProfile = async (req, res, next) => {
 // @access  Private
 const getAuthorDashboardStats = async (req, res, next) => {
   try {
-    // 1. Get the author record for the logged in user
+    // 1. Get the author record
     const { data: author, error: authorError } = await supabase
       .from('authors')
       .select('*')
@@ -68,54 +68,129 @@ const getAuthorDashboardStats = async (req, res, next) => {
       throw new Error(booksError.message);
     }
 
-    // 3. Compute stats (mocking revenue calculation logic based on books)
-    const booksCount = books ? books.length : 0;
+    const bookIds = books.map(b => b.id);
     
-    // In a real app, revenue and sales would come from a transactions table
-    // Since we don't have a transactions table, we'll calculate dummy stats based on book prices
-    let totalRevenue = 0;
-    let booksSold = 0;
-    let totalReaders = 0;
-    let totalRating = 0;
-    let ratedBooks = 0;
-
-    if (books && books.length > 0) {
-      books.forEach(book => {
-        // Dummy logic for dashboard stats
-        const sold = Math.floor(Math.random() * 500); 
-        booksSold += sold;
-        totalRevenue += (book.price || 0) * sold;
-        totalReaders += sold + Math.floor(Math.random() * 200);
+    // 3. Get Order Items (Sales)
+    let orderItems = [];
+    if (bookIds.length > 0) {
+      const { data: items, error: itemsError } = await supabase
+        .from('order_items')
+        .select('*, orders!inner(status, created_at, user_id)')
+        .in('book_id', bookIds);
         
-        if (book.rating) {
-          totalRating += book.rating;
-          ratedBooks += 1;
-        }
-      });
+      if (!itemsError && items) {
+        // Filter only completed orders
+        orderItems = items.filter(item => item.orders.status === 'Completed');
+      }
     }
 
-    const avgRating = ratedBooks > 0 ? (totalRating / ratedBooks).toFixed(1) : 0;
+    // 4. Get Reviews
+    let reviews = [];
+    if (bookIds.length > 0) {
+      const { data: revs, error: revsError } = await supabase
+        .from('reviews')
+        .select('*, users(name)')
+        .in('book_id', bookIds)
+        .order('created_at', { ascending: false });
+        
+      if (!revsError && revs) {
+        reviews = revs;
+      }
+    }
 
-    // Dummy chart data
-    const revenueData = [
-      { name: 'Jan', value: Math.floor(Math.random() * 5000) },
-      { name: 'Feb', value: Math.floor(Math.random() * 5000) },
-      { name: 'Mar', value: Math.floor(Math.random() * 5000) },
-      { name: 'Apr', value: Math.floor(Math.random() * 5000) },
-      { name: 'May', value: Math.floor(Math.random() * 5000) },
-      { name: 'Jun', value: Math.floor(Math.random() * 5000) }
-    ];
+    // Calculate Analytics
+    const totalBooks = books.length;
+    const publishedBooks = books.filter(b => b.status === 'Published').length;
+    const draftBooks = books.filter(b => b.status === 'Draft').length;
+    const pendingReview = books.filter(b => b.status === 'Pending Review').length;
+
+    let totalRevenue = 0;
+    let booksSold = 0;
+    const uniqueReaders = new Set();
+    const bookSalesMap = {}; // book_id -> quantity
+    
+    // Monthly aggregation
+    const monthlyData = {};
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    // Initialize last 6 months
+    const today = new Date();
+    for(let i = 5; i >= 0; i--) {
+      let d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      monthlyData[`${d.getFullYear()}-${d.getMonth()}`] = { 
+        name: months[d.getMonth()], 
+        revenue: 0, 
+        sales: 0 
+      };
+    }
+
+    orderItems.forEach(item => {
+      const qty = item.quantity || 1;
+      const sub = item.subtotal || 0;
+      
+      totalRevenue += sub;
+      booksSold += qty;
+      uniqueReaders.add(item.orders.user_id);
+      
+      bookSalesMap[item.book_id] = (bookSalesMap[item.book_id] || 0) + qty;
+      
+      const orderDate = new Date(item.orders.created_at);
+      const monthKey = `${orderDate.getFullYear()}-${orderDate.getMonth()}`;
+      if (monthlyData[monthKey]) {
+        monthlyData[monthKey].revenue += sub;
+        monthlyData[monthKey].sales += qty;
+      }
+    });
+
+    const totalReaders = uniqueReaders.size;
+
+    // Best Selling Book
+    let bestSellingBookId = null;
+    let maxSales = -1;
+    for (const [bId, sales] of Object.entries(bookSalesMap)) {
+      if (sales > maxSales) {
+        maxSales = sales;
+        bestSellingBookId = bId;
+      }
+    }
+    const bestSellingBook = books.find(b => b.id === bestSellingBookId) || null;
+
+    // Ratings
+    let avgRating = 0;
+    if (reviews.length > 0) {
+      const sum = reviews.reduce((acc, r) => acc + (r.rating || 0), 0);
+      avgRating = (sum / reviews.length).toFixed(1);
+    }
+
+    const latestReviews = reviews.slice(0, 5).map(r => ({
+      ...r,
+      reviewer: r.users?.name || 'Anonymous'
+    }));
+
+    // Format chart data
+    const revenueData = Object.values(monthlyData);
+    const monthlyRevenue = revenueData.length > 0 ? revenueData[revenueData.length - 1].revenue : 0;
+    const monthlySales = revenueData.length > 0 ? revenueData[revenueData.length - 1].sales : 0;
 
     res.json({
       author,
       stats: {
+        totalBooks,
+        publishedBooks,
+        draftBooks,
+        pendingReview,
         totalRevenue,
-        booksSold,
+        booksSold, // aka Downloads
         totalReaders,
-        avgRating
+        avgRating,
+        totalReviews: reviews.length,
+        monthlyRevenue,
+        monthlySales
       },
-      revenueData,
-      books: books || []
+      revenueData, // Used for charts
+      bestSellingBook,
+      latestReviews,
+      books
     });
   } catch (error) {
     next(error);

@@ -10,7 +10,9 @@ import ChartCard, { SimpleBarChart } from '../components/ui/ChartCard.jsx';
 import AnalyticsCard from '../components/ui/AnalyticsCard.jsx';
 import TimelineCard from '../components/ui/TimelineCard.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { useEffect } from 'react';
+import { fetchAuthorDashboard } from '../store/slices/authorSlice.js';
 import Button from '../components/ui/Button.jsx';
 import Badge from '../components/ui/Badge.jsx';
 import DashboardLayout from '../components/layout/DashboardLayout.jsx';
@@ -19,10 +21,15 @@ const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transi
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.08 } } };
 
 export default function AuthorDashboard() {
-  const { data } = useSelector(state => state.dashboard);
+  const dispatch = useDispatch();
+  const { dashboardData: data, loading } = useSelector(state => state.author);
   const user = useSelector(state => state.auth.user);
 
-  const reviewTimeline = data?.recentReviews?.map(r => ({
+  useEffect(() => {
+    dispatch(fetchAuthorDashboard());
+  }, [dispatch]);
+
+  const reviewTimeline = data?.latestReviews?.map(r => ({
     time: "Recent",
     title: `${r.rating} Star Review from ${r.reviewer}`,
     description: `"${r.comment}"`,
@@ -54,7 +61,7 @@ export default function AuthorDashboard() {
                 </div>
                 <div>
                   <p className="text-xs text-muted font-bold uppercase tracking-wider mb-1">Monthly Revenue</p>
-                  <p className="text-xl font-bold font-heading text-text">₹{(data?.revenue || 0).toLocaleString()}</p>
+                  <p className="text-xl font-bold font-heading text-text">₹{(data?.stats?.monthlyRevenue || 0).toLocaleString()}</p>
                 </div>
               </div>
               <div className="bg-gray-50 border border-border rounded-[24px] p-4 flex items-center gap-4">
@@ -63,7 +70,7 @@ export default function AuthorDashboard() {
                 </div>
                 <div>
                   <p className="text-xs text-muted font-bold uppercase tracking-wider mb-1">Followers</p>
-                  <p className="text-xl font-bold font-heading text-text">{data?.followers || 0}</p>
+                  <p className="text-xl font-bold font-heading text-text">{data?.stats?.totalReaders || 0}</p>
                 </div>
               </div>
               <Link to="/upload">
@@ -85,25 +92,25 @@ export default function AuthorDashboard() {
                 </h2>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <StatsCard title="Total Readers" value={(data?.readers || 0).toLocaleString()} icon={Users} color="primary" />
-                <StatsCard title="Downloads" value={(data?.downloads || 0).toLocaleString()} icon={Download} color="secondary" />
-                <StatsCard title="Published" value={data?.publishedBooks || 0} icon={BookOpen} color="success" />
-                <StatsCard title="Drafts" value={data?.draftBooks || 0} icon={Edit3} color="warning" />
+                <StatsCard title="Total Readers" value={(data?.stats?.totalReaders || 0).toLocaleString()} icon={Users} color="primary" />
+                <StatsCard title="Downloads" value={(data?.stats?.booksSold || 0).toLocaleString()} icon={Download} color="secondary" />
+                <StatsCard title="Published" value={data?.stats?.publishedBooks || 0} icon={BookOpen} color="success" />
+                <StatsCard title="Drafts" value={data?.stats?.draftBooks || 0} icon={Edit3} color="warning" />
               </div>
             </motion.div>
 
             {/* Charts Row */}
             <motion.div variants={fadeUp} className="grid sm:grid-cols-2 gap-6">
               <AnalyticsCard title="Gross Revenue" subtitle="Earnings over time" action={<Button variant="ghost" size="sm" icon={Download}></Button>}>
-                {data?.monthlySalesChart?.length > 0 ? (
-                  <SimpleBarChart data={data.monthlySalesChart} height={180} />
+                {data?.revenueData?.length > 0 ? (
+                  <SimpleBarChart data={data.revenueData} height={180} />
                 ) : (
                   <EmptyState icon={IndianRupee} title="No revenue data" description="Publish a book to start earning." actionLabel="Upload Book" actionLink="/upload" className="mt-4 p-4 border-none shadow-none bg-transparent"/>
                 )}
               </AnalyticsCard>
               <AnalyticsCard title="Unit Sales" subtitle="Volume over time" action={<Button variant="ghost" size="sm" icon={Download}></Button>}>
-                {data?.monthlySalesChart?.length > 0 ? (
-                  <SimpleBarChart data={data.monthlySalesChart} height={180} />
+                {data?.revenueData?.length > 0 ? (
+                  <SimpleBarChart data={data.revenueData} height={180} />
                 ) : (
                   <EmptyState icon={TrendingUp} title="No sales data" description="Publish a book to generate sales." actionLabel="Upload Book" actionLink="/upload" className="mt-4 p-4 border-none shadow-none bg-transparent"/>
                 )}
@@ -122,19 +129,25 @@ export default function AuthorDashboard() {
                     <tr>
                       <th className="px-6 py-4 font-semibold">Title & Status</th>
                       <th className="px-6 py-4 font-semibold">Downloads</th>
-                      <th className="px-6 py-4 font-semibold">Revenue</th>
+                      <th className="px-6 py-4 font-semibold">Price</th>
                       <th className="px-6 py-4 font-semibold text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {data?.booksList?.length > 0 ? data.booksList.map(book => (
+                    {data?.books?.length > 0 ? data.books.map(book => (
                       <tr key={book.id} className="hover:bg-gray-50/50 transition-colors group">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <img src={book.cover} alt="Cover" className="w-10 h-14 object-cover rounded-md" />
+                            {book.cover_url ? (
+                              <img src={book.cover_url} alt="Cover" className="w-10 h-14 object-cover rounded-md" />
+                            ) : (
+                              <div className="w-10 h-14 bg-gray-100 rounded-md flex items-center justify-center">
+                                <BookOpen size={16} className="text-muted" />
+                              </div>
+                            )}
                             <div>
                               <p className="font-bold text-text mb-1">{book.title}</p>
-                              <Badge color={book.status === 'Published' ? 'success' : 'default'} size="xs">{book.status}</Badge>
+                              <Badge color={book.status === 'Published' ? 'success' : book.status === 'Pending Review' ? 'warning' : 'default'} size="xs">{book.status}</Badge>
                             </div>
                           </div>
                         </td>
