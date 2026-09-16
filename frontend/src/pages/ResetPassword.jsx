@@ -158,7 +158,7 @@ export default function ResetPassword() {
             className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden"
             whileHover={{ scale: 1.08, rotate: -5 }}
           >
-            <img src="/logo.png" alt="ReadSphere Logo" className="w-full h-full object-cover" />
+            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="ReadSphere Logo" className="w-full h-full object-cover" />
           </motion.div>
           <div>
             <p className="text-[16px] font-black leading-none" style={{ fontFamily: 'Outfit, sans-serif', color: PRIMARY }}>ReadSphere</p>

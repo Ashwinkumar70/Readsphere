@@ -59,7 +59,7 @@ export default function Navbar() {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 shrink-0">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center overflow-hidden">
-              <img src="/logo.png" alt="ReadSphere Logo" className="w-full h-full object-cover" />
+              <img src={`${import.meta.env.BASE_URL}logo.png`} alt="ReadSphere Logo" className="w-full h-full object-cover" />
             </div>
             <span className="text-xl font-bold gradient-text hidden sm:block">ReadSphere</span>
           </Link>

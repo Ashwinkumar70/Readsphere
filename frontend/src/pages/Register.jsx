@@ -159,7 +159,7 @@ export default function Register() {
             className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden"
             whileHover={{ scale: 1.08, rotate: -5 }}
           >
-            <img src="/logo.png" alt="ReadSphere Logo" className="w-full h-full object-cover" />
+            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="ReadSphere Logo" className="w-full h-full object-cover" />
           </motion.div>
           <div>
             <p className="text-[16px] font-black leading-none" style={{ fontFamily: 'Outfit, sans-serif', color: PRIMARY }}>ReadSphere</p>
@@ -234,7 +234,7 @@ export default function Register() {
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent pointer-events-none"
               />
-              <img src="/logo.png" alt="ReadSphere Logo" className="w-full h-full object-cover relative z-10" />
+              <img src={`${import.meta.env.BASE_URL}logo.png`} alt="ReadSphere Logo" className="w-full h-full object-cover relative z-10" />
             </motion.div>
             
             <h2 className="text-5xl font-black mb-3 text-center" style={{ fontFamily: 'Outfit, sans-serif', color: PRIMARY }}>
